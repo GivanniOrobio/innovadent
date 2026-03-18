@@ -181,6 +181,15 @@
                 studyData = await response.json();
                 console.log('[DICOM] Estudio cargado:', studyData);
                 
+                // Debug: mostrar URLs de imágenes
+                if (studyData.studies && studyData.studies[0].series) {
+                    studyData.studies[0].series.forEach((s, idx) => {
+                        if (s.instances && s.instances.length > 0) {
+                            console.log(`[DICOM] Serie ${idx}:`, s.instances[0].wadoUri || s.instances[0].wadoUrl);
+                        }
+                    });
+                }
+                
                 if (!studyData.studies || studyData.studies.length === 0) {
                     throw new Error('No se encontraron estudios en la respuesta');
                 }
@@ -212,7 +221,14 @@
                         // Cargar primera imagen de la serie
                         if (series.instances && series.instances.length > 0) {
                             const instance = series.instances[0];
-                            const imageUrl = instance.wadoUri || instance.wadoUrl;
+                            // Obtener URL y asegurar que tenga el prefijo wadouri:
+                            let imageUrl = instance.wadoUri || instance.wadoUrl;
+                            
+                            if (imageUrl && !imageUrl.startsWith('wadouri:')) {
+                                imageUrl = 'wadouri:' + imageUrl;
+                            }
+                            
+                            console.log('[DICOM] Cargando imagen:', imageUrl);
                             
                             if (imageUrl) {
                                 loadViewport(viewportDiv.querySelector('.viewport-element'), imageUrl, series.instances);
