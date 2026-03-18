@@ -1,0 +1,156 @@
+<!DOCTYPE html><html translate="no"><head><meta name="theme-color" content="#1C2024" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#1C2024" media="(prefers-color-scheme: dark)"><!-- head--><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"><meta http-equiv="Content-Language" content="es-mx"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="author" content="Theia SAPI de CV"><link rel="shortcut icon" href="assets/images/favicon_1.ico"><meta name="description" content="De clic aquí"><meta property="og:image" content="https://static.nubix.cloud/og_image.jpg"><meta property="og:site_name" content="nubix.cloud"><meta property="og:description" content="De clic aquí"><meta name="robots" content="noindex, nofollow"><link rel="icon" href="assets/images/favicon_1.ico" type="image/x-icon"><meta name="theme-color" content="#36404A" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#36404A" media="(prefers-color-scheme: dark)"><link rel="manifest" href="manifest.json"><link href="stylesheets/loading_bar.css" rel="stylesheet" type="text/css"><script src="javascripts/translate.js?v=4.8.0+0"></script><title>Acceda a su estudio | NUBIX</title><!-- Bootstrap--><link href="assets/css/bootstrap.min.css" rel="stylesheet" type="text/css"><link href="assets/css/core.css" rel="stylesheet" type="text/css"><link href="assets/css/components.css" rel="stylesheet" type="text/css"><link href="assets/css/icons.css" rel="stylesheet" type="text/css"><link href="assets/css/pages.css" rel="stylesheet" type="text/css"><link href="assets/css/responsive.css" rel="stylesheet" type="text/css"><!-- Sweet alerts CSS--><link href="bower_components/sweetalert2/dist/sweetalert2.min.css" rel="stylesheet" type="text/css"><!-- Core.js--><script src="bower_components/core.js/client/core.min.js"></script><!-- Modernizr--><script src="assets/js/modernizr.min.js"></script><!-- HTML5 Shiv and Respond.js IE8 support of HTML5 elements and media queries--><!--if lt IE 9script(src='https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js')
+script(src='https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js')--><!-- jQuery--><script src="assets/js/jquery.min.js"></script><!-- Chat--><!-- Tidio--><script src="//code.tidio.co/ryk3d44fka0w1pptl9iqkutvdrk6ppeh.js" async=""></script><!-- Mixpanel--><!-- Hotjar--><script>(function(h,o,t,j,a,r){
+    h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+    h._hjSettings={hjid:2166152,hjsv:6};
+    a=o.getElementsByTagName('head')[0];
+    r=o.createElement('script');r.async=1;
+    r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+    a.appendChild(r);
+})(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');</script><!-- Mixpanel--><script>(function(c,a){if(!a.__SV){var b=window;try{var d,m,j,k=b.location,f=k.hash;d=function(a,b){return(m=a.match(RegExp(b+"=([^&]*)")))?m[1]:null};f&&d(f,"state")&&(j=JSON.parse(decodeURIComponent(d(f,"state"))),"mpeditor"===j.action&&(b.sessionStorage.setItem("_mpcehash",f),history.replaceState(j.desiredHash||"",c.title,k.pathname+k.search)))}catch(n){}var l,h;window.mixpanel=a;a._i=[];a.init=function(b,d,g){function c(b,i){var a=i.split(".");2==a.length&&(b=b[a[0]],i=a[1]);b[i]=function(){b.push([i].concat(Array.prototype.slice.call(arguments,
+0)))}}var e=a;"undefined"!==typeof g?e=a[g]=[]:g="mixpanel";e.people=e.people||[];e.toString=function(b){var a="mixpanel";"mixpanel"!==g&&(a+="."+g);b||(a+=" (stub)");return a};e.people.toString=function(){return e.toString(1)+".people (stub)"};l="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");
+for(h=0;h<l.length;h++)c(e,l[h]);var f="set set_once union unset remove delete".split(" ");e.get_group=function(){function a(c){b[c]=function(){call2_args=arguments;call2=[c].concat(Array.prototype.slice.call(call2_args,0));e.push([d,call2])}}for(var b={},d=["get_group"].concat(Array.prototype.slice.call(arguments,0)),c=0;c<f.length;c++)a(f[c]);return b};a._i.push([b,d,g])};a.__SV=1.2;b=c.createElement("script");b.type="text/javascript";b.async=!0;b.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?
+MIXPANEL_CUSTOM_LIB_URL:"file:"===c.location.protocol&&"//cdn4.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn4.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn4.mxpnl.com/libs/mixpanel-2-latest.min.js";d=c.getElementsByTagName("script")[0];d.parentNode.insertBefore(b,d)}})(document,window.mixpanel||[]);
+mixpanel.init("893f5a2b89db7b33bbba3a953f6275f9", {batch_requests: true})</script><!-- Sentry--><script src="https://browser.sentry-cdn.com/5.20.1/bundle.min.js" integrity="sha384-O8HdAJg1h8RARFowXd2J/r5fIWuinSBtjhwQoPesfVILeXzGpJxvyY/77OaPPXUo" crossorigin="anonymous"></script><script>Sentry.init({ dsn: 'https://842e3193882b4d51b6eb03e2fc25cea4@o234957.ingest.sentry.io/1399815' });</script><!-- Delighted--><script>!function(e,t,r,n){if(!e[n]){for(var a=e[n]=[],i=["survey","reset","config","init","set","get","event","identify","track","page","screen","group","alias"],s=0;s<i.length;s++){var c=i[s];a[c]=a[c]||function(e){return function(){var t=Array.prototype.slice.call(arguments);a.push([e,t])}}(c)}a.SNIPPET_VERSION="1.0.1";var o=t.createElement("script");o.type="text/javascript",o.async=!0,o.src="https://d2yyd1h5u9mauk.cloudfront.net/integrations/web/v1/library/"+r+"/"+n+".js";var p=t.getElementsByTagName("script")[0];p.parentNode.insertBefore(o,p)}}(window,document,"nQGpQNF9xBsEpbF5","delighted");</script><!-- Pendo--><script>(function(apiKey){
+    (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+    v=['initialize','identify','updateOptions','pageLoad','track'];for(w=0,x=v.length;w<x;++w)(function(m){
+        o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+        y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
+        z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);})(window,document,'script','pendo');
+})('ae9be711-c1cd-4447-6072-68e0936d3505');</script><!-- OneSignal--><script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async=""></script><script>window.OneSignal = window.OneSignal || [];
+OneSignal.push(function() {
+  OneSignal.init({
+    appId: "98c18f58-2690-4349-928e-bc1dade3b4c2",
+    safari_web_id: "web.onesignal.auto.3c5e9739-5d2f-4f69-94b2-78aed3043174"
+  });
+
+  // Function to set user data and schedule next check
+  function checkAndSetUser() {
+    if (typeof window._user !== 'undefined') {
+      OneSignal.setExternalUserId(window._user.user_id);
+      OneSignal.setEmail(window._user.email);
+    } else {
+      // Reschedule the check if window._user is not set
+      setTimeout(checkAndSetUser, 1000); // Check again after 1000 milliseconds
+    }
+  }
+
+  // Initial check
+  checkAndSetUser();
+});</script><!-- Custom--><script src="javascripts/dist/identify.min.js?v=4.8.0+0"></script><!-- Prefetch viewer--><!-- DNS prefetch: Resolve the domain name early.--><link rel="dns-prefetch" href="https://ver.nubix.cloud"><link rel="dns-prefetch" href="https://visor.nubix.cloud"><!-- Preconnect: Establish early connections (TCP, TLS) to the server.--><link rel="preconnect" href="https://ver.nubix.cloud" crossorigin><link rel="preconnect" href="https://visor.nubix.cloud" crossorigin><!-- Prefetch: Download and cache the viewer page.--><link rel="prefetch" href="https://ver.nubix.cloud/viewer"><link rel="prefetch" href="https://visor.nubix.cloud"><style>.modal-body .description img,
+.modal-body .conclusion img {
+  max-width: 100%;
+  height: auto;
+}
+#comments p,
+.modal-body .description,
+.modal-body .conclusion {
+  /* Fallback for older browsers */
+  word-wrap: break-word;
+  /* Standard */
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+#disclaimer_section {
+  margin-top: 20px;
+}
+.disclaimer_content {
+  /* Fallback for older browsers */
+  word-wrap: break-word;
+  /* Standard */
+  overflow-wrap: break-word;
+  hyphens: auto;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.6;
+  text-align: left;
+}
+.disclaimer_content a {
+  color: #337ab7;
+  text-decoration: underline;
+}
+.disclaimer_content a:hover {
+  color: #23527c;
+}
+#video-intro {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: #000;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 1s ease-in-out;
+  -webkit-overflow-scrolling: touch; /* Para iOS */
+  cursor: pointer; /* Indicar que es clickeable */
+}
+
+#video-intro.visible {
+  display: flex;
+}
+
+#video-intro.fade-out {
+  opacity: 0;
+}
+
+#intro-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-video-playable-inline: true; /* Para iOS Safari */
+}
+
+.video-legend-overlay {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+  pointer-events: none; /* No interferir con clicks en el video */
+  max-width: calc(100% - 40px); /* Responsive en pantallas pequeñas */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.video-legend-overlay.visible {
+  opacity: 1;
+}
+
+.video-legend-overlay .legend-message {
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  font-weight: 400;
+}
+
+.video-legend-overlay .legend-timer {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Ajustes para dispositivos móviles */
+@media (max-width: 768px) {
+  .video-legend-overlay {
+    bottom: 10px;
+    right: 10px;
+    padding: 12px 16px;
+    max-width: calc(100% - 20px);
+  }
+
+  .video-legend-overlay .legend-message {
+    font-size: 12px;
+  }
+
+  .video-legend-overlay .legend-timer {
+    font-size: 14px;
+  }
+}</style></head><body class="fixed-left"><!-- Video de introducción (oculto por defecto)--><div id="video-intro"><video id="intro-video" autoplay muted playsinline webkit-playsinline>Tu navegador no soporta el elemento de video.</video></div><!-- Begin page--><div id="wrapper"><!-- Top Bar--><div class="topbar"><!-- Logo--><div class="topbar-left"><div class="text-center"><a class="logo" href="/ver"><i class="icon-c-logo"><img src="assets/images/Theia_imago_light.png" height="42" alt="Theia"></i><span><img src="assets/images/Theia_light.png" height="40" alt="Theia"></span></a></div></div><div class="navbar navbar-default" role="navigation"></div></div><!-- Start Content--><div class="content-page"></div><!-- Interpretación--><div class="modal fade" id="interpretation" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;" data-backdrop="static" data-keyboard="false"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><a class="pull-right view btn btn-success" target="_blank"><span> <span class="glyphicon glyphicon-eye-open"></span></span> Ver estudio</a><br class="btn hidden-md hidden-lg"><br class="btn hidden-md hidden-lg"><a class="pull-right btn btn-link" id="portal" target="_blank"><span> <span class="glyphicon glyphicon-floppy-disk"></span></span> Guardar en MiNUBIX</a><img class="hidden" id="logo" width="75" height="auto"><br></div><div class="modal-body"><small class="id pull-right"></small><br><small class="pacient_id pull-right"></small><br><small class="accession_number pull-right"></small><br><small class="adquisition_date pull-right">Fecha toma:</small><br><small class="date pull-right">Fecha reporte:</small><br><br><h4 class="modal-title interpretation_title">Reporte del estudio</h4><br><strong class="pacient_full_name"></strong><br><small class="physician_title">Médico solicitante</small><p class="physician"></p><br><strong class="type"></strong><br><small class="technician">Adquirido por</small><br><div id="content"><h4 class="text-uppercase description_title">Técnica y descripción<button class="btn btn-link btn-xs hidden" id="read_description" style="opacity: 0.5; vertical-align: middle;" title="Leer"><span class="glyphicon glyphicon-volume-up"></span></button></h4><div class="description"></div><h4 class="text-uppercase conclusion_title">Conclusión<button class="btn btn-link btn-xs hidden" id="read_conclusion" style="opacity: 0.5; vertical-align: middle;" title="Leer"><span class="glyphicon glyphicon-volume-up"></span></button></h4><div class="conclusion"></div></div><div class="hidden" id="adobe-dc-view" style="height: 600px; width: 100%;"></div><div id="see_custom_form"><h4 class="header-title text-uppercase"><b>Información adicional</b></h4><iframe id="see_custom_form_frame" width="100%" height="600" frameBorder="0" style="border: 1px solid white;"></iframe></div><br><div id="inlineImgs"></div></div><div class="modal-footer"><center><p class="physician_name"></p><p class="physician_cedula"></p><p class="physician_info"></p></center><small class="verified_by pull-left"></small><br><a class="view btn btn-success" target="_blank"><span> <span class="glyphicon glyphicon-eye-open"></span></span> Clic para ver estudio</a><a class="btn btn-primary hidden" id="interpretation_attachment" target="_blank"><span> <span class="glyphicon glyphicon-paperclip"></span></span> Adjunto</a><br><br><div class="btn-group print_group dropup" style="margin: 5px;"><a class="new_print btn btn-info" target="_blank"><span class="glyphicon glyphicon-print"></span></a><button class="btn btn-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="caret"></span><span class="sr-only">Toggle Dropdown</span></button><ul class="dropdown-menu"><li><a class="pdf_print" href="#" target="_blank">Generar PDF</a></li></ul></div><a class="zip btn btn-info" target="_blank"><span> <span class="glyphicon glyphicon-cloud-download"></span></span></a><button class="btn btn-info glyphicon glyphicon-share-alt" id="share"></button><button class="btn btn-info glyphicon glyphicon-qrcode" data-toggle="modal" data-target="#qrModal"></button><!-- Study attachments section--><div class="hidden" id="study_attachments_reporte"><hr><h5>Archivos adicionales</h5><div id="study_attachments_list_reporte"></div></div><div class="contact_info hidden"><hr><h4 class="modal-title">¿Tiene alguna duda?</h4><small class="short_name"></small><br><div class="support_info"></div><br><div class="alert alert-info pull-left text-left hidden" id="noInterpretation" role="alert"><span><span class="glyphicon glyphicon-info-sign"></span></span> En caso de que su estudio requiera interpretación, podrá visualizarla en este espacio una vez finalizada.</div></div><div class="hidden" id="disclaimer_section"><hr><div class="disclaimer_content"></div></div></div><center><a id="lang-es" href="#">🇲🇽🇪🇸 Español</a><a id="lang-en" href="#">🇺🇲🇬🇧 English</a></center></div></div></div><div class="modal fade" id="qrModal" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button class="close" type="button" data-dismiss="modal" aria-hidden="true">&times;</button></div><div class="modal-body"><img class="img-responsive center-block" id="qrImg" src="#"></div></div></div></div></div><script>var resizefunc = [];</script><!-- Frameworks--><script src="assets/js/bootstrap.min.js"></script><script src="assets/js/detect.js"></script><script src="assets/js/fastclick.js"></script><script src="assets/js/jquery.slimscroll.js"></script><script src="assets/js/jquery.blockUI.js"></script><script src="assets/js/waves.js"></script><script src="assets/js/wow.min.js"></script><script src="assets/js/jquery.nicescroll.js"></script><script src="assets/js/jquery.scrollTo.min.js"></script><script src="assets/js/jquery.core.js"></script><script src="assets/js/jquery.app.js"></script><!-- Moment--><script src="bower_components/moment/min/moment-with-locales.min.js"></script><!-- Sweet-Alert--><script src="bower_components/sweetalert2/dist/sweetalert2.min.js"></script><!-- Adobe PDF--><script src="https://documentservices.adobe.com/view-sdk/viewer.js"></script><!-- QR--><script src="bower_components/qrious/dist/qrious.min.js"></script><!-- Custom--><script src="javascripts/dist/reporte.min.js?v=4.8.0+0"></script></body></html>

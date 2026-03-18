@@ -1,0 +1,20 @@
+#heartbeat-loader {
+  position: fixed;
+  top: 0;
+  left: 50%; /* Center the loader */
+  transform: translateX(-50%); /* Ensure it's perfectly centered */
+  height: 5px; /* Adjust the height as needed */
+  background-color: #52AFE3; /* Change color as needed */
+  animation: heartbeat 2s infinite;
+  z-index: 999;
+}
+@keyframes heartbeat {
+  0%, 100% {
+      width: 0%; /* Start from no width */
+      opacity: 1; /* Fully visible */
+  }
+  50% {
+      width: 100%; /* Full width at the middle of the animation */
+      opacity: 0.5; /* Slightly faded at the middle of the animation */
+  }
+}

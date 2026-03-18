@@ -1,2 +1,0 @@
-# innovadent
-visor dcom
