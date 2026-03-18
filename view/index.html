@@ -6,18 +6,6 @@
     <title>Visor DICOM - NUBIX</title>
     <link rel="manifest" href="../manifest.json">
     <link rel="icon" href="./image/nubix.png" type="image/png">
-    
-    <!-- OHIF Viewer CSS -->
-    <link href="./css/app.bundle.css" rel="stylesheet" type="text/css">
-    <link href="./css/963.css" rel="stylesheet" type="text/css">
-    <link href="./css/5674.css" rel="stylesheet" type="text/css">
-    <link href="./css/6201.css" rel="stylesheet" type="text/css">
-    <link href="./css/7197.css" rel="stylesheet" type="text/css">
-    <link href="./css/8402.css" rel="stylesheet" type="text/css">
-    <link href="./css/9026.css" rel="stylesheet" type="text/css">
-    <link href="./css/2308.css" rel="stylesheet" type="text/css">
-    <link href="./css/4759.css" rel="stylesheet" type="text/css">
-    
     <style>
         body, html {
             margin: 0;
@@ -26,9 +14,10 @@
             overflow: hidden;
             background-color: #000;
         }
-        #root {
-            height: 100%;
+        iframe {
             width: 100%;
+            height: 100%;
+            border: none;
         }
         .loading {
             position: fixed;
@@ -37,6 +26,7 @@
             right: 0;
             bottom: 0;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             background-color: #252525;
@@ -63,7 +53,7 @@
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <iframe id="viewer" src="about:blank" title="OHIF Viewer"></iframe>
     <div id="loading" class="loading">
         <div>
             <h2>Cargando visor DICOM...</h2>
@@ -72,97 +62,44 @@
         </div>
     </div>
 
-    <!-- Configurar OHIF -->
     <script>
         const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
         const urlParams = new URLSearchParams(window.location.search);
         const fileId = urlParams.get('fileId');
         
+        const loadingInfo = document.getElementById('loading-info');
+        const viewerFrame = document.getElementById('viewer');
+        
         if (fileId) {
-            window.config = {
-                routerBasename: '/view',
-                showStudyList: false,
-                showLoadingIndicator: true,
-                disableConfirmationPrompts: true,
-                showPatientInfo: false,
-                activateViewportBeforeInteraction: false,
-                useSharedArrayBuffer: false,
-                extensions: [],
-                modes: [],
-                customizationService: {},
-                maxNumberOfWebWorkers: 3,
-                showWarningMessageForCrossOrigin: false,
-                defaultDataSourceName: 'dicomjson',
-                dataSources: [{
-                    namespace: '@ohif/extension-default.dataSourcesModule.dicomjson',
-                    sourceName: 'dicomjson',
-                    configuration: {
-                        friendlyName: 'DICOM JSON - Google Drive',
-                        name: 'dicomjson',
-                        url: `${API_BASE}/study/${fileId}`,
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                }],
-                httpErrorHandler: (error) => {
-                    console.warn('[HTTP Error]', error.status, error.message);
-                },
-                whiteLabeling: {
-                    createLogoComponentFn: function (React) {
-                        return React.createElement(
-                            "a",
-                            {
-                                target: "_self",
-                                rel: "noopener noreferrer",
-                                className: "pointer-events-none",
-                                href: "#",
-                            },
-                            React.createElement("img", {
-                                src: "./image/nubix.png",
-                                className: "w-8 h-8 object-contain",
-                                alt: "Logo",
-                            }),
-                        );
-                    },
-                },
-                hotkeys: [
-                    { commandName: "incrementActiveViewport", label: "Next Viewport", keys: ["right"] },
-                    { commandName: "decrementActiveViewport", label: "Previous Viewport", keys: ["left"] },
-                    { commandName: "rotateViewportCW", label: "Rotate Right", keys: ["r"] },
-                    { commandName: "rotateViewportCCW", label: "Rotate Left", keys: ["l"] },
-                    { commandName: "invertViewport", label: "Invert", keys: ["i"] },
-                    { commandName: "flipViewportHorizontal", label: "Flip Horizontally", keys: ["h"] },
-                    { commandName: "flipViewportVertical", label: "Flip Vertically", keys: ["v"] },
-                    { commandName: "scaleUpViewport", label: "Zoom In", keys: ["+"] },
-                    { commandName: "scaleDownViewport", label: "Zoom Out", keys: ["-"] },
-                    { commandName: "fitViewportToWindow", label: "Zoom to Fit", keys: ["="] },
-                    { commandName: "resetViewport", label: "Reset", keys: ["space"] },
-                    { commandName: "nextImage", label: "Next Image", keys: ["down"] },
-                    { commandName: "previousImage", label: "Previous Image", keys: ["up"] },
-                    { commandName: "windowLevel", label: "Window/Level", keys: ["w"] },
-                    { commandName: "zoom", label: "Zoom", keys: ["z"] },
-                    { commandName: "pan", label: "Pan", keys: ["p"] }
-                ]
+            const studyUrl = `${API_BASE}/study/${fileId}`;
+            loadingInfo.textContent = `Cargando estudio: ${fileId}`;
+            
+            // Usar OHIF Viewer público con nuestro backend
+            // Nota: Usamos la URL codificada como parámetro
+            const viewerUrl = `https://viewer.ohif.org/viewer?url=${encodeURIComponent(studyUrl)}`;
+            
+            console.log('[Viewer] Cargando:', viewerUrl);
+            console.log('[Viewer] Study:', studyUrl);
+            
+            viewerFrame.src = viewerUrl;
+            
+            viewerFrame.onload = () => {
+                setTimeout(() => {
+                    document.getElementById('loading').classList.add('hidden');
+                }, 2000);
             };
             
-            console.log('[OHIF] Config:', window.config);
-            console.log('[OHIF] Study URL:', `${API_BASE}/study/${fileId}`);
-        } else {
-            document.getElementById('loading-info').textContent = 'Error: No se especificó fileId';
-        }
-    </script>
-    
-    <!-- OHIF Viewer Bundle local -->
-    <script src="./javascript/app.bundle.a7e524c0e2cef2b01e35.js"></script>
-    
-    <script>
-        // Ocultar loading cuando OHIF cargue
-        window.addEventListener('load', () => {
+            // Timeout por si falla la carga
             setTimeout(() => {
-                document.getElementById('loading').classList.add('hidden');
-            }, 2000);
-        });
+                if (!document.getElementById('loading').classList.contains('hidden')) {
+                    loadingInfo.textContent = 'El visor está cargando...';
+                }
+            }, 10000);
+            
+        } else {
+            loadingInfo.textContent = 'Error: No se especificó fileId en la URL';
+            document.querySelector('.spinner').style.display = 'none';
+        }
     </script>
 </body>
 </html>
