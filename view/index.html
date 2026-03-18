@@ -7,13 +7,12 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="icon" href="./image/nubix.png" type="image/png">
     
-    <!-- Cornerstone.js - Versiones estables -->
+    <!-- Cornerstone.js -->
     <script src="https://unpkg.com/hammerjs@2.0.8/hammer.js"></script>
     <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
     <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
     <script src="https://unpkg.com/cornerstone-math@0.1.9/dist/cornerstoneMath.js"></script>
     <script src="https://unpkg.com/cornerstone-tools@4.20.1/dist/cornerstoneTools.js"></script>
-    <script src="https://unpkg.com/cornerstone-wado-image-loader@3.4.0/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
     
     <style>
         body, html {
@@ -150,42 +149,68 @@
         let studyData = null;
         let viewports = [];
         
-        // Configurar cornerstone-wado-image-loader
-        if (window.cornerstoneWADOImageLoader) {
-            cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
-            cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+        // Loader personalizado para DICOM desde HTTPS
+        function createImageLoader() {
+            cornerstone.registerImageLoader('wadouri', loadImage);
+            cornerstone.registerImageLoader('wadouri', loadImage);
+        }
+        
+        async function loadImage(imageId) {
+            const url = imageId.replace('wadouri:', '');
+            console.log('[Loader] Cargando DICOM:', url);
             
-            // Configuración para CORS
-            cornerstoneWADOImageLoader.configure({
-                useWebWorkers: true,
-                decodeConfig: {
-                    convertFloatPixelDataToInt: false,
-                },
-                httpOptions: {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
                     headers: {
                         'Accept': 'application/dicom',
-                    },
-                    withCredentials: false,
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
                 }
-            });
-            
-            // Configurar web workers
-            const config = {
-                maxWebWorkers: navigator.hardwareConcurrency || 4,
-                startWebWorkersOnDemand: true,
-                taskConfiguration: {
-                    decodeTask: {
-                        initializeCodecsOnStartup: true,
-                        strict: false,
-                    },
-                },
-            };
-            cornerstoneWADOImageLoader.webWorkerManager.initialize(config);
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const byteArray = new Uint8Array(arrayBuffer);
+                
+                console.log('[Loader] DICOM cargado:', byteArray.length, 'bytes');
+                
+                // Crear imagen cornerstone
+                const image = cornerstoneWADOImageLoader.wadouri.loadImage(imageId, {
+                    byteArray: byteArray,
+                    url: url
+                }).promise;
+                
+                return image;
+            } catch (err) {
+                console.error('[Loader] Error:', err);
+                throw err;
+            }
         }
         
         async function loadStudy() {
             try {
                 loadingInfo.textContent = `Obteniendo estudio: ${fileId}`;
+                
+                // Cargar wado-image-loader dinámicamente
+                await loadScript('https://unpkg.com/cornerstone-wado-image-loader@3.4.0/dist/cornerstoneWADOImageLoader.bundle.min.js');
+                
+                // Configurar loader
+                cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+                cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+                
+                cornerstoneWADOImageLoader.configure({
+                    useWebWorkers: false,
+                    httpOptions: {
+                        headers: {
+                            'Accept': 'application/dicom',
+                        }
+                    }
+                });
+                
+                // Registrar loader personalizado
+                cornerstone.registerImageLoader('wadouri', wadoImageLoader);
                 
                 const response = await fetch(`${API_BASE}/study/${fileId}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -194,75 +219,47 @@
                 console.log('[DICOM] Estudio cargado:', studyData);
                 
                 if (!studyData.studies || studyData.studies.length === 0) {
-                    throw new Error('No se encontraron estudios en la respuesta');
+                    throw new Error('No se encontraron estudios');
                 }
                 
                 const study = studyData.studies[0];
-                
-                // Mostrar información del paciente
                 document.getElementById('patient-info').textContent = 
-                    `${study.PatientName || 'N/A'} | ID: ${study.PatientID || ''} | ${formatDate(study.StudyDate)}`;
+                    `${study.PatientName || 'N/A'} | ID: ${study.PatientID || ''}`;
                 infoBar.style.display = 'flex';
                 
-                // Crear viewports para cada serie
                 const container = document.getElementById('series-container');
                 container.innerHTML = '';
                 
-                let seriesLoaded = 0;
-                const totalSeries = study.series ? study.series.length : 0;
+                let loaded = 0;
+                const total = study.series ? study.series.length : 0;
                 
-                if (study.series && study.series.length > 0) {
-                    for (const series of study.series) {
-                        const viewportDiv = document.createElement('div');
-                        viewportDiv.className = 'viewport';
-                        viewportDiv.innerHTML = `
-                            <div class="viewport-label">
-                                Serie ${series.SeriesNumber || ''} | ${series.Modality || ''} | 
-                                ${series.instances ? series.instances.length : 0} imágenes
-                            </div>
-                            <div class="viewport-element"></div>
-                        `;
-                        container.appendChild(viewportDiv);
-                        
-                        // Cargar primera imagen de la serie
-                        if (series.instances && series.instances.length > 0) {
-                            const instance = series.instances[0];
-                            let imageUrl = instance.wadoUri || instance.wadoUrl;
-                            
-                            if (imageUrl && !imageUrl.startsWith('wadouri:')) {
-                                imageUrl = 'wadouri:' + imageUrl;
-                            }
-                            
-                            console.log('[DICOM] Cargando imagen:', imageUrl);
-                            
-                            if (imageUrl) {
-                                loadViewport(
-                                    viewportDiv.querySelector('.viewport-element'), 
-                                    imageUrl, 
-                                    series.instances,
-                                    () => {
-                                        seriesLoaded++;
-                                        console.log(`[DICOM] Series cargadas: ${seriesLoaded}/${totalSeries}`);
-                                        if (seriesLoaded >= totalSeries) {
-                                            setTimeout(() => {
-                                                loadingEl.classList.add('hidden');
-                                            }, 500);
-                                        }
-                                    }
-                                );
-                            } else {
-                                seriesLoaded++;
-                            }
-                        } else {
-                            seriesLoaded++;
+                for (const series of (study.series || [])) {
+                    const viewportDiv = document.createElement('div');
+                    viewportDiv.className = 'viewport';
+                    viewportDiv.innerHTML = `
+                        <div class="viewport-label">
+                            Serie ${series.SeriesNumber || ''} | ${series.Modality || ''}
+                        </div>
+                        <div class="viewport-element"></div>
+                    `;
+                    container.appendChild(viewportDiv);
+                    
+                    if (series.instances && series.instances.length > 0) {
+                        let imageUrl = series.instances[0].wadoUri || series.instances[0].wadoUrl;
+                        if (imageUrl && !imageUrl.startsWith('wadouri:')) {
+                            imageUrl = 'wadouri:' + imageUrl;
                         }
+                        
+                        loadViewport(viewportDiv.querySelector('.viewport-element'), imageUrl, () => {
+                            loaded++;
+                            if (loaded >= total) {
+                                setTimeout(() => loadingEl.classList.add('hidden'), 500);
+                            }
+                        });
                     }
                 }
                 
-                // Si no hay series, ocultar loading inmediatamente
-                if (totalSeries === 0) {
-                    loadingEl.classList.add('hidden');
-                }
+                if (total === 0) loadingEl.classList.add('hidden');
                 
             } catch (err) {
                 console.error('[DICOM] Error:', err);
@@ -272,82 +269,66 @@
             }
         }
         
-        async function loadViewport(element, imageUrl, instances, onComplete) {
+        function wadoImageLoader(imageId) {
+            const url = imageId.replace('wadouri:', '');
+            return cornerstoneWADOImageLoader.loadImage(imageId);
+        }
+        
+        async function loadViewport(element, imageUrl, onComplete) {
             try {
-                // Habilitar elemento Cornerstone
                 cornerstone.enable(element);
-                
-                // Cargar imagen
                 console.log('[Viewport] Cargando:', imageUrl);
+                
                 const image = await cornerstone.loadAndCacheImage(imageUrl);
                 console.log('[Viewport] Imagen cargada:', image);
                 
-                // Mostrar imagen
                 cornerstone.displayImage(element, image);
                 
-                // Configurar herramientas
                 cornerstoneTools.external.cornerstone = cornerstone;
                 cornerstoneTools.external.Hammer = Hammer;
-                cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
-                
                 cornerstoneTools.init();
                 
-                // Añadir herramientas
-                const WwwcTool = cornerstoneTools.WwwcTool;
-                const PanTool = cornerstoneTools.PanTool;
-                const ZoomTool = cornerstoneTools.ZoomTool;
-                const StackScrollTool = cornerstoneTools.StackScrollTool;
+                cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
+                cornerstoneTools.addTool(cornerstoneTools.PanTool);
+                cornerstoneTools.addTool(cornerstoneTools.ZoomTool);
                 
-                cornerstoneTools.addTool(WwwcTool);
-                cornerstoneTools.addTool(PanTool);
-                cornerstoneTools.addTool(ZoomTool);
-                cornerstoneTools.addTool(StackScrollTool);
-                
-                // Configurar interacciones
                 cornerstoneTools.setToolActive('Wwwc', { mouseButton: 1 });
                 cornerstoneTools.setToolActive('Pan', { mouseButton: 2 });
                 cornerstoneTools.setToolActive('Zoom', { mouseButton: 1, shiftKey: true });
                 
-                // Scroll con rueda para stack
-                element.addEventListener('wheel', (e) => {
-                    e.preventDefault();
-                    // Implementar scroll de stack si hay múltiples imágenes
-                });
-                
-                viewports.push({ element, instances });
-                
+                viewports.push({ element });
                 if (onComplete) onComplete();
                 
             } catch (err) {
                 console.error('[Viewport] Error:', err);
-                element.innerHTML += `<div style="color:#ff6b6b;padding:10px;font-size:12px;">Error: ${err.message}</div>`;
-                
+                element.innerHTML += `<div style="color:#ff6b6b;padding:10px;font-size:12px;">${err.message}</div>`;
                 if (onComplete) onComplete();
             }
         }
         
-        function formatDate(dateStr) {
-            if (!dateStr || dateStr.length !== 8) return '';
-            return `${dateStr.substring(6,8)}/${dateStr.substring(4,6)}/${dateStr.substring(0,4)}`;
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                if (document.querySelector(`script[src="${src}"]`)) {
+                    resolve();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.head.appendChild(script);
+            });
         }
         
-        // Iniciar
         if (fileId) {
             loadStudy();
         } else {
-            loadingInfo.textContent = 'Error: No se especificó fileId en la URL';
-            errorMsg.textContent = 'Debes seleccionar un archivo ZIP desde la página principal.';
-            errorMsg.style.display = 'block';
+            loadingInfo.textContent = 'Error: No se especificó fileId';
             document.querySelector('.spinner').style.display = 'none';
         }
         
-        // Manejar redimensionamiento
         window.addEventListener('resize', () => {
-            viewports.forEach(vp => {
-                if (vp.element) {
-                    cornerstone.resize(vp.element);
-                }
-            });
+            viewports.forEach(vp => cornerstone.resize(vp.element));
         });
     </script>
 </body>
