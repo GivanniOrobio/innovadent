@@ -1,19 +1,53 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Seleccionar Estudio - NUBIX</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
-    input, select, button { padding: 10px; margin: 10px 0; width: 100%; box-sizing: border-box; }
-    #list { max-height: 400px; overflow-y: auto; }
-    .study-item { padding: 10px; border: 1px solid #ddd; margin: 5px 0; cursor: pointer; }
-    .study-item:hover { background: #f0f8ff; }
-    .loading { text-align: center; }
-    .error { color: red; }
+    body {
+      font-family: Arial;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+
+    input,
+    select,
+    button {
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .study-item {
+      padding: 10px;
+      border: 1px solid #ddd;
+      margin: 5px 0;
+      cursor: pointer;
+    }
+
+    .study-item:hover {
+      background: #f0f8ff;
+    }
+
+    .loading {
+      text-align: center;
+    }
+
+    .error {
+      color: red;
+    }
   </style>
 </head>
+
 <body>
   <h1>Seleccionar Estudio DICOM desde Google Drive</h1>
   <input id="search" placeholder="Buscar por nombre...">
@@ -35,7 +69,7 @@
     function renderList() {
       const search = document.getElementById('search').value.toLowerCase();
       const list = document.getElementById('list');
-list.innerHTML = studies.filter(s => s.name.toLowerCase().includes(search))
+      list.innerHTML = studies.filter(s => s.name.toLowerCase().includes(search))
         .map(s => `<div class="study-item" onclick="selectStudy('${s.id}', '${s.name}')">
           <strong>${s.name}</strong><br>Type: ${s.mimeType}<br>ID: ${s.id}
         </div>`).join('');
@@ -50,6 +84,54 @@ list.innerHTML = studies.filter(s => s.name.toLowerCase().includes(search))
     function showLoading() { document.getElementById('list').innerHTML = 'Cargando...'; }
     function showError(msg) { document.getElementById('error').innerHTML = `<div class="error">${msg}</div>`; }
   </script>
-</body>
-</html>
+  <script>
+   
+    window.driveUtils = {
 
+      async fetchList() {
+        
+        API_BASE = `https://dcom-view-server.onrender.com/api/drive`;
+
+        const res = await fetch(`${API_BASE}/list-drive`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        console.log("%c [driveUtils]", "color:yellow", res)
+        return res.json();
+      },
+      async fetchStudy(fileId) {
+        const res = await fetch(`${API_BASE}/study/${fileId}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      },
+      generateOHIFUrl(fileId) {
+        return `https://viewer.ohif.org/viewer?url=${encodeURIComponent(`${API_BASE}/study/${fileId}`)}`;
+      },
+
+
+      generateManifest(study) {
+        const patient = study.studies[0];
+        return {
+          name: `Estudio ${patient.PatientName || 'NUBIX'}`,
+          short_name: patient.PatientID,
+          icons: [ /* add icons */],
+          start_url: `./index.html?fileId=${patient.StudyID}`,
+          display: 'standalone',
+          theme_color: '#36404A'
+        };
+      },
+      copyShareLink(fileId, name) {
+        const link = `${window.location.origin}${window.location.pathname}?fileId=${fileId}`;
+        navigator.clipboard.writeText(link).then(() => alert(`Link copiado: ${name}`));
+      },
+      loadViewer(fileId) {
+        // For iframe or OHIF config update
+        const studyUrl = `${API_BASE}/study/${fileId}`;
+        // Update window.config.dataSources[0].configuration.query.study = studyUrl;
+        // Or set iframe src
+      }
+    }
+
+  </script>
+  <script src="config/default.js"></script>
+</body>
+
+</html>

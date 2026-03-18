@@ -170,4 +170,4 @@ window.config = {
 
 // Log configuration loaded
 console.log('[OHIF Config] Configuration loaded successfully');
-console.log('[OHIF Config] API Base: https://dcom-view-server.onrender.com/api/drive');
+console.log('[OHIF Config] API Base: https://dcom-view-server.onrender.com/api/drive/list-drive');
