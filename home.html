@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seleccionar Estudio - NUBIX</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
+    input, select, button { padding: 10px; margin: 10px 0; width: 100%; box-sizing: border-box; }
+    #list { max-height: 400px; overflow-y: auto; }
+    .study-item { padding: 10px; border: 1px solid #ddd; margin: 5px 0; cursor: pointer; }
+    .study-item:hover { background: #f0f8ff; }
+    .loading { text-align: center; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Seleccionar Estudio DICOM desde Google Drive</h1>
+  <input id="search" placeholder="Buscar por nombre...">
+  <button onclick="loadStudies()">Cargar Estudios</button>
+  <div id="list" class="loading">Presione cargar para listar ZIPs</div>
+  <div id="error"></div>
+  <script src="javascripts/drive-utils.js"></script>
+  <script>
+    let studies = [];
+    function loadStudies() {
+      showLoading();
+      driveUtils.fetchList()
+        .then(data => {
+          studies = data.files || [];
+          renderList();
+        })
+        .catch(err => showError('Error cargando estudios: ' + err.message));
+    }
+    function renderList() {
+      const search = document.getElementById('search').value.toLowerCase();
+      const list = document.getElementById('list');
+list.innerHTML = studies.filter(s => s.name.toLowerCase().includes(search))
+        .map(s => `<div class="study-item" onclick="selectStudy('${s.id}', '${s.name}')">
+          <strong>${s.name}</strong><br>Type: ${s.mimeType}<br>ID: ${s.id}
+        </div>`).join('');
+
+    }
+    function selectStudy(id, name) {
+      if (confirm(`Abrir "${name}" en visor?`)) {
+        window.location.href = `index.html?fileId=${id}`;
+      }
+    }
+    document.getElementById('search').oninput = renderList;
+    function showLoading() { document.getElementById('list').innerHTML = 'Cargando...'; }
+    function showError(msg) { document.getElementById('error').innerHTML = `<div class="error">${msg}</div>`; }
+  </script>
+</body>
+</html>
+

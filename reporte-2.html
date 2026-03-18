@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NUBIX PWA Reporte</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="manifest.json">
+  <link href="../stylesheets/loading_bar.css" rel="stylesheet">
+  <style> /* same as index.css styles */ </style>
+</head>
+<body>
+  <div class="container">
+    <div class="container__left"><div id="report-panel">Cargando...</div></div>
+    <div class="resizer" id="dragMe"></div>
+    <div class="container__right"><iframe id="viewer" src="about:blank" frameborder="0"></iframe></div>
+  </div>
+  <script src="../javascripts/drive-utils.js"></script>
+  <script src="../config/default.js"></script>
+  <script>
+    // Same initViewer, updateReportPanel as above
+    // ...
+  </script>
+  <script src="../javascripts/split.js"></script>
+  <script src="assets/js/reporte.min.js"></script> <!-- keep existing -->
+</body>
+</html>
+

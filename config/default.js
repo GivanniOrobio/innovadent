@@ -70,7 +70,7 @@ window.config = {
       configuration: {
         friendlyName: "DICOM JSON - Google Drive",
         name: "dicomjson",
-        url: "https://dcom-view-server.onrender.com/api/drive/study",
+        url: "https://dcom-view-server.onrender.com/api/drive",
         // Headers opcionales
         headers: {
           "Content-Type": "application/json"
