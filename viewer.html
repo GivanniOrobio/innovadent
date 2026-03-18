@@ -93,9 +93,7 @@
 
 <body>
     <div class="container">
-        <div class="container__left left"><iframe id="report" name="report"
-                src="https://app.nubix.cloud/reporte?id=682168&amp;organization=auth0%7C683000ca8c1980731dc52d21&amp;access_code=8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx"
-                frameborder="0"></iframe>
+        <div class="container__left left"><iframe id="report" name="report" frameborder="0"></iframe>
             <div class="report-overlay"><button id="close-btn" type="button">×</button><button id="fullscreen-btn"
                     type="button">⛶</button></div>
         </div>
@@ -110,14 +108,51 @@
             const fileId = urlParams.get('fileId');
             const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
             
+            // URLs por defecto (cuando no hay fileId)
+            const defaultReportUrl = 'https://app.nubix.cloud/reporte?id=682168&organization=auth0%7C683000ca8c1980731dc52d21&access_code=8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx';
+            const defaultViewerUrl = 'https://ver.nubix.cloud/viewer?url=https%3A%2F%2Fapp.nubix.cloud%2Fapi%2Fv1%2Forganization%2Fstudy%2F682168%2Ffiles%2Fohif%3Forganization%3Dauth0%7C683000ca8c1980731dc52d21%26access_code%3D8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx%26pin%3Dnull';
+            
             if (fileId) {
+                // Cargar reporte con el fileId seleccionado
+                const reportUrl = `https://app.nubix.cloud/reporte?id=${fileId}&organization=auth0%7C683000ca8c1980731dc52d21&access_code=8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx`;
+                document.getElementById('report').src = reportUrl;
+                
+                // Cargar viewer con el estudio desde el backend
                 const viewerUrl = `https://ver.nubix.cloud/viewer?url=${encodeURIComponent(`${API_BASE}/study/${fileId}`)}`;
                 document.getElementById('viewer').src = viewerUrl;
+                
                 console.log(`[viewer.html] Cargando estudio: ${fileId}`);
+                console.log(`[viewer.html] Report URL: ${reportUrl}`);
                 console.log(`[viewer.html] Viewer URL: ${viewerUrl}`);
+                
+                // Generar manifest.json dinámico
+                const manifest = {
+                    name: `Estudio ${fileId}`,
+                    short_name: fileId,
+                    start_url: `./viewer.html?fileId=${fileId}`,
+                    display: 'standalone',
+                    background_color: '#36404A',
+                    description: `Estudio DICOM ${fileId}`,
+                    icons: [
+                        { src: 'images/touch/homescreen48.jpg', sizes: '48x48', type: 'image/png' },
+                        { src: 'images/touch/homescreen72.jpg', sizes: '72x72', type: 'image/png' },
+                        { src: 'images/touch/homescreen96.jpg', sizes: '96x96', type: 'image/png' },
+                        { src: 'images/touch/homescreen144.jpg', sizes: '144x144', type: 'image/png' },
+                        { src: 'images/touch/homescreen168.jpg', sizes: '168x168', type: 'image/png' },
+                        { src: 'images/touch/homescreen192.jpg', sizes: '192x192', type: 'image/png' }
+                    ]
+                };
+                
+                // Actualizar el link del manifest
+                const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+                const manifestUrl = URL.createObjectURL(manifestBlob);
+                const manifestLink = document.querySelector('link[rel="manifest"]');
+                if (manifestLink) {
+                    manifestLink.href = manifestUrl;
+                }
             } else {
-                const defaultUrl = 'https://ver.nubix.cloud/viewer?url=https%3A%2F%2Fapp.nubix.cloud%2Fapi%2Fv1%2Forganization%2Fstudy%2F682168%2Ffiles%2Fohif%3Forganization%3Dauth0%7C683000ca8c1980731dc52d21%26access_code%3D8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx%26pin%3Dnull';
-                document.getElementById('viewer').src = defaultUrl;
+                document.getElementById('report').src = defaultReportUrl;
+                document.getElementById('viewer').src = defaultViewerUrl;
             }
         })();
     </script>
