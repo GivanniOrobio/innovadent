@@ -19,7 +19,7 @@ window.config = {
           href: "#",
         },
         React.createElement("img", {
-          src: "./assets/nubix.png",
+          src: "../view/image/nubix.png",
           className: "w-8 h-8 object-contain",
           alt: "Logo",
         }),

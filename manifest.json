@@ -8,9 +8,29 @@
   "description": "Visor de estudios DICOM desde Google Drive",
   "icons": [
     {
-      "src": "assets/images/favicon_1.ico",
+      "src": "./view/image/nubix.png",
       "sizes": "48x48",
-      "type": "image/x-icon"
+      "type": "image/png"
+    },
+    {
+      "src": "./view/image/nubix.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "./view/image/nubix.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "./view/image/nubix.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "./view/image/nubix.png",
+      "sizes": "192x192",
+      "type": "image/png"
     }
   ]
 }

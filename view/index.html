@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <title>Visor DICOM - NUBIX</title>
     <link rel="manifest" href="../manifest.json">
+    <link rel="icon" href="./image/nubix.png" type="image/png">
     <link href="./css/app.bundle.css" rel="stylesheet" type="text/css">
     <link href="./css/963.css" rel="stylesheet" type="text/css">
     <link href="./css/5674.css" rel="stylesheet" type="text/css">
@@ -104,6 +105,24 @@
                 ],
                 httpErrorHandler: (error) => {
                     console.warn('[HTTP Error]', error.status, error.message);
+                },
+                whiteLabeling: {
+                    createLogoComponentFn: function (React) {
+                      return React.createElement(
+                        "a",
+                        {
+                          target: "_self",
+                          rel: "noopener noreferrer",
+                          className: "pointer-events-none",
+                          href: "#",
+                        },
+                        React.createElement("img", {
+                          src: "./image/nubix.png",
+                          className: "w-8 h-8 object-contain",
+                          alt: "Logo",
+                        }),
+                      );
+                    },
                 },
                 hotkeys: [
                     { commandName: "incrementActiveViewport", label: "Next Viewport", keys: ["right"] },
