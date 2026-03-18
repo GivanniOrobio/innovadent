@@ -6,6 +6,17 @@
     <title>Visor DICOM - NUBIX</title>
     <link rel="manifest" href="../manifest.json">
     <link rel="icon" href="./image/nubix.png" type="image/png">
+    
+    <!-- Cornerstone.js para visualizar DICOM -->
+    <script src="https://unpkg.com/hammerjs@2.0.8/hammer.js"></script>
+    <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
+    <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
+    <script src="https://unpkg.com/cornerstone-math@0.1.9/dist/cornerstoneMath.js"></script>
+    <script src="https://unpkg.com/cornerstone-tools@6.0.10/dist/cornerstoneTools.js"></script>
+    <script src="https://unpkg.com/cornerstone-web-image-loader@2.1.1/dist/cornerstoneWebImageLoader.min.js"></script>
+    <script src="https://unpkg.com/cornerstone-wado-image-loader@4.14.0/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+    <script src="https://unpkg.com/hammerjs@2.0.8/hammer.min.js"></script>
+    
     <style>
         body, html {
             margin: 0;
@@ -13,11 +24,43 @@
             height: 100%;
             overflow: hidden;
             background-color: #000;
+            font-family: Arial, sans-serif;
         }
-        iframe {
+        .container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+        .series-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 4px;
+            background: #1a1a1a;
+        }
+        .viewport {
+            position: relative;
+            background: #000;
+            min-width: 200px;
+            min-height: 200px;
+            flex: 1 1 300px;
+            max-width: 100%;
+            max-height: 50%;
+        }
+        .viewport-element {
             width: 100%;
             height: 100%;
-            border: none;
+        }
+        .viewport-label {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            color: #fff;
+            font-size: 12px;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 8px;
+            border-radius: 4px;
+            pointer-events: none;
         }
         .loading {
             position: fixed;
@@ -26,11 +69,11 @@
             right: 0;
             bottom: 0;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             background-color: #252525;
             color: white;
-            font-family: Arial, sans-serif;
             z-index: 9999;
         }
         .loading.hidden {
@@ -46,7 +89,7 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
+            margin: 20px;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -58,18 +101,42 @@
             font-size: 14px;
             max-width: 80%;
             text-align: center;
+            padding: 0 20px;
+        }
+        .info-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 8px 16px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+        }
+        .tools-help {
+            color: #aaa;
+            font-size: 11px;
         }
     </style>
 </head>
 <body>
-    <iframe id="viewer" name="viewer" src="about:blank" title="OHIF Viewer"></iframe>
     <div id="loading" class="loading">
-        <div>
-            <h2>Cargando visor DICOM...</h2>
-            <p id="loading-info">Iniciando...</p>
-            <div class="spinner"></div>
-            <p id="error-msg" class="error-msg" style="display:none;"></p>
-        </div>
+        <h2>Cargando visor DICOM...</h2>
+        <p id="loading-info">Iniciando...</p>
+        <div class="spinner"></div>
+        <p id="error-msg" class="error-msg" style="display:none;"></p>
+    </div>
+    
+    <div class="container">
+        <div id="series-container" class="series-container"></div>
+    </div>
+    
+    <div class="info-bar" style="display:none;" id="info-bar">
+        <span id="patient-info"></span>
+        <span class="tools-help">🖱️ Wheel: Zoom | Click+Drag: W/L | Right-click: Pan | +/−: Scroll</span>
     </div>
 
     <script>
@@ -79,43 +146,165 @@
         
         const loadingInfo = document.getElementById('loading-info');
         const errorMsg = document.getElementById('error-msg');
-        const viewerFrame = document.getElementById('viewer');
+        const loadingEl = document.getElementById('loading');
+        const infoBar = document.getElementById('info-bar');
         
-        if (fileId) {
-            const studyUrl = `${API_BASE}/study/${fileId}`;
-            loadingInfo.textContent = `Cargando estudio: ${fileId}`;
+        let studyData = null;
+        let viewports = [];
+        
+        // Configurar Cornerstone WADO
+        if (window.cornerstoneWADOImageLoader) {
+            cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+            cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
             
-            // Usar OHIF Viewer público con nuestro backend
-            const viewerUrl = `https://viewer.ohif.org/viewer?url=${encodeURIComponent(studyUrl)}`;
-            
-            console.log('[viewer.html] Cargando estudio:', fileId);
-            console.log('[viewer.html] Viewer URL:', viewerUrl);
-            console.log('[viewer.html] Study URL:', studyUrl);
-            
-            // Cargar el viewer en el iframe
-            viewerFrame.src = viewerUrl;
-            
-            // Ocultar loading cuando el iframe cargue
-            viewerFrame.onload = () => {
-                setTimeout(() => {
-                    document.getElementById('loading').classList.add('hidden');
-                }, 1500);
+            // Configurar web workers para decodificación
+            const config = {
+                maxWebWorkers: navigator.hardwareConcurrency || 4,
+                startWebWorkersOnDemand: true,
+                taskConfiguration: {
+                    decodeTask: {
+                        initializeCodecsOnStartup: true,
+                        strict: false,
+                    },
+                },
             };
-            
-            // Manejar errores de carga
-            setTimeout(() => {
-                if (!document.getElementById('loading').classList.contains('hidden')) {
-                    errorMsg.textContent = 'El visor está cargando. Si ves esto por más de 30 segundos, recarga la página.';
-                    errorMsg.style.display = 'block';
+            cornerstoneWADOImageLoader.webWorkerManager.initialize(config);
+        }
+        
+        async function loadStudy() {
+            try {
+                loadingInfo.textContent = `Obteniendo estudio: ${fileId}`;
+                
+                const response = await fetch(`${API_BASE}/study/${fileId}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                studyData = await response.json();
+                console.log('[DICOM] Estudio cargado:', studyData);
+                
+                if (!studyData.studies || studyData.studies.length === 0) {
+                    throw new Error('No se encontraron estudios en la respuesta');
                 }
-            }, 10000);
-            
+                
+                const study = studyData.studies[0];
+                
+                // Mostrar información del paciente
+                document.getElementById('patient-info').textContent = 
+                    `${study.PatientName || 'N/A'} | ${study.PatientID || ''} | ${study.StudyDate || ''}`;
+                infoBar.style.display = 'flex';
+                
+                // Crear viewports para cada serie
+                const container = document.getElementById('series-container');
+                container.innerHTML = '';
+                
+                if (study.series && study.series.length > 0) {
+                    for (const series of study.series) {
+                        const viewportDiv = document.createElement('div');
+                        viewportDiv.className = 'viewport';
+                        viewportDiv.innerHTML = `
+                            <div class="viewport-label">
+                                Serie ${series.SeriesNumber || ''} | ${series.Modality || ''} | 
+                                ${series.instances ? series.instances.length : 0} imágenes
+                            </div>
+                            <div class="viewport-element" data-series-index="${container.children.length}"></div>
+                        `;
+                        container.appendChild(viewportDiv);
+                        
+                        // Cargar primera imagen de la serie
+                        if (series.instances && series.instances.length > 0) {
+                            const instance = series.instances[0];
+                            const imageUrl = instance.wadoUri || instance.wadoUrl;
+                            
+                            if (imageUrl) {
+                                loadViewport(viewportDiv.querySelector('.viewport-element'), imageUrl, series.instances);
+                            }
+                        }
+                    }
+                }
+                
+                // Ocultar loading
+                setTimeout(() => {
+                    loadingEl.classList.add('hidden');
+                }, 500);
+                
+            } catch (err) {
+                console.error('[DICOM] Error:', err);
+                errorMsg.textContent = `Error: ${err.message}. Verifica que el archivo ZIP contenga DICOMs válidos.`;
+                errorMsg.style.display = 'block';
+                document.querySelector('.spinner').style.display = 'none';
+            }
+        }
+        
+        async function loadViewport(element, imageUrl, instances) {
+            try {
+                const elementId = 'viewport-' + Math.random().toString(36).substr(2, 9);
+                element.id = elementId;
+                
+                // Habilitar elemento Cornerstone
+                const csElement = cornerstone.enable(element);
+                
+                // Cargar imagen
+                const image = await cornerstone.loadAndCacheImage(imageUrl);
+                
+                // Mostrar imagen
+                cornerstone.displayImage(element, image);
+                
+                // Configurar herramientas
+                const Tools = cornerstoneTools;
+                Tools.external.cornerstone = cornerstone;
+                Tools.external.Hammer = Hammer;
+                Tools.external.cornerstoneMath = cornerstoneMath;
+                
+                Tools.init();
+                
+                // Añadir herramientas
+                const WlTool = Tools.WwwcTool;
+                const PanTool = Tools.PanTool;
+                const ZoomTool = Tools.ZoomTool;
+                const StackScrollTool = Tools.StackScrollTool;
+                
+                Tools.addTool(WlTool);
+                Tools.addTool(PanTool);
+                Tools.addTool(ZoomTool);
+                Tools.addTool(StackScrollTool);
+                
+                // Configurar interacciones
+                Tools.setToolActive('Wwwc', { mouseButton: 1 });
+                Tools.setToolActive('Pan', { mouseButton: 2 });
+                Tools.setToolActive('Zoom', { mouseButton: 1, shiftKey: true });
+                
+                // Scroll con rueda
+                element.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? 1 : -1;
+                    // Aquí se podría implementar scroll de stack
+                });
+                
+                viewports.push({ element: csElement, instances });
+                
+            } catch (err) {
+                console.error('[Viewport] Error:', err);
+                element.innerHTML += `<div style="color:red;padding:10px;">Error: ${err.message}</div>`;
+            }
+        }
+        
+        // Iniciar
+        if (fileId) {
+            loadStudy();
         } else {
             loadingInfo.textContent = 'Error: No se especificó fileId en la URL';
             errorMsg.textContent = 'Debes seleccionar un archivo ZIP desde la página principal.';
             errorMsg.style.display = 'block';
             document.querySelector('.spinner').style.display = 'none';
         }
+        
+        // Manejar redimensionamiento
+        window.addEventListener('resize', () => {
+            viewports.forEach(vp => {
+                if (vp.element) {
+                    cornerstone.resize(vp.element);
+                }
+            });
+        });
     </script>
 </body>
 </html>
