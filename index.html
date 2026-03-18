@@ -1,133 +1,136 @@
-<html translate="no">
-
+<!DOCTYPE html>
+<html>
 <head>
-    <title>Acceda a su estudio | NUBIX</title>
-    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
-    <meta http-equiv="Content-Language" content="es-mx">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <meta name="author" content="Theia SAPI de CV">
-    <link rel="shortcut icon" href="assets/images/favicon_1.ico">
-    <meta name="description" content="De clic aquí">
-    <meta property="og:image" content="https://static.nubix.cloud/og_image.jpg">
-    <meta property="og:site_name" content="nubix.cloud">
-    <meta property="og:description" content="De clic aquí">
-    <meta name="robots" content="noindex, nofollow">
-    <link rel="icon" href="assets/images/favicon_1.ico" type="image/x-icon">
-    <meta name="theme-color" content="#36404A" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#36404A" media="(prefers-color-scheme: dark)">
-    <link rel="manifest" href="manifest.json">
-    <link href="stylesheets/loading_bar.css" rel="stylesheet" type="text/css">
-    <script src="javascripts/translate.js?v=4.8.0+0"></script>
-    <style>
-        .container {
-            display: flex;
-            height: 100vh;
-            width: 100%;
-        }
-
-        .container__left {
-            width: 33%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            /* Enable absolute positioning for overlay */
-        }
-
-        .resizer {
-            background-color: #cbd5e0;
-            cursor: ew-resize;
-            height: 100%;
-            width: 3px;
-        }
-
-        .container__right {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        iframe {
-            min-height: 100%;
-            min-width: 100%;
-            background-color: #252525;
-        }
-
-        body {
-            margin: 0;
-        }
-
-        /* Overlay positioned on the right side of the report, centered vertically */
-        .report-overlay {
-            position: absolute;
-            top: 50%;
-            right: -40px;
-            /* Adjust horizontal offset as needed */
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .report-overlay button {
-            width: 32px;
-            height: 32px;
-            border: none;
-            background-color: #f0f0f0;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 16px;
-            line-height: 32px;
-            text-align: center;
-            padding: 0;
-        }
-
-        /* Specific style for the close button to make it red */
-        #close-btn {
-            background-color: red;
-            color: white;
-        }
-
-        .report-overlay button:hover {
-            background-color: #e0e0e0;
-        }
-    </style>
+  <title>Seleccionar Estudio - NUBIX</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial; max-width: 1000px; margin: 50px auto; padding: 20px; }
+    h1 { text-align: center; }
+    input, button { padding: 10px; margin: 10px 0; box-sizing: border-box; }
+    input { width: 70%; }
+    button { width: 25%; cursor: pointer; }
+    .loading { text-align: center; padding: 20px; }
+    .error { color: red; text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #36404A; color: white; }
+    tr:hover { background-color: #f0f8ff; }
+    .btn-cargar, .btn-compartir { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 5px; }
+    .btn-cargar { background-color: #36404A; color: white; }
+    .btn-cargar:hover { background-color: #2c353f; }
+    .btn-compartir { background-color: #4CAF50; color: white; }
+    .btn-compartir:hover { background-color: #45a049; }
+    .zip-file { background-color: #fff3cd; }
+  </style>
 </head>
-
 <body>
-    <div class="container">
-        <div class="container__left left"><iframe id="report" name="report"
-                src="https://app.nubix.cloud/reporte?id=682168&amp;organization=auth0%7C683000ca8c1980731dc52d21&amp;access_code=8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx"
-                frameborder="0"></iframe>
-            <div class="report-overlay"><button id="close-btn" type="button">×</button><button id="fullscreen-btn"
-                    type="button">⛶</button></div>
-        </div>
-        <div class="resizer" id="dragMe"></div>
-        <div class="container__right right"><iframe id="viewer" name="viewer" frameborder="0"></iframe></div>
-    </div>
-    <script src="javascripts/split.js"></script>
-    <script src="javascripts/dist/split-reporte.min.js"></script>
-    <script>
-        // Manejar parámetro fileId desde home.html
-        (function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const fileId = urlParams.get('fileId');
-            const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
-            
-            if (fileId) {
-                // Cargar estudio desde el backend usando /api/drive/study/:fileId
-                const viewerUrl = `https://ver.nubix.cloud/viewer?url=${encodeURIComponent(`${API_BASE}/study/${fileId}`)}`;
-                document.getElementById('viewer').src = viewerUrl;
-                console.log(`[index.html] Cargando estudio: ${fileId}`);
-                console.log(`[index.html] Viewer URL: ${viewerUrl}`);
-            } else {
-                // URL por defecto si no hay fileId
-                const defaultUrl = 'https://ver.nubix.cloud/viewer?url=https%3A%2F%2Fapp.nubix.cloud%2Fapi%2Fv1%2Forganization%2Fstudy%2F682168%2Ffiles%2Fohif%3Forganization%3Dauth0%7C683000ca8c1980731dc52d21%26access_code%3D8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx%26pin%3Dnull';
-                document.getElementById('viewer').src = defaultUrl;
-            }
-        })();
-    </script>
-</body>
+  <h1>Estudios DICOM - Google Drive</h1>
+  <div style="text-align: center;">
+    <input id="search" placeholder="Buscar por nombre..." type="text">
+    <button onclick="loadStudies()">Actualizar lista</button>
+  </div>
+  <div id="list" class="loading">Presione "Actualizar lista" para cargar los archivos</div>
+  <div id="error"></div>
+  <script src="javascripts/drive-utils.js"></script>
+  <script>
+    let studies = [];
 
+    window.loadStudies = function() {
+      showLoading();
+      fetch(`${API_BASE}/list-drive`)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          studies = data.files || [];
+          renderTable();
+        })
+        .catch(err => showError('Error cargando estudios: ' + err.message));
+    }
+
+    window.isZip = function(file) {
+      return file.mimeType && file.mimeType.includes('zip');
+    }
+
+    window.renderTable = function() {
+      const search = document.getElementById('search').value.toLowerCase();
+      const container = document.getElementById('list');
+
+      const filtered = studies.filter(s => s.name.toLowerCase().includes(search));
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p style="text-align:center;">No se encontraron archivos</p>';
+        return;
+      }
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>ID</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      filtered.forEach(file => {
+        const isZipFile = isZip(file);
+        const rowClass = isZipFile ? 'zip-file' : '';
+        const cargarBtn = isZipFile
+          ? `<button class="btn-cargar" onclick="cargarEstudio('${file.id}')">Cargar</button>`
+          : `<span style="color:#999;">No compatible</span>`;
+
+        html += `
+          <tr class="${rowClass}">
+            <td><strong>${file.name}</strong></td>
+            <td>${file.mimeType || 'N/A'}</td>
+            <td style="font-family:monospace;font-size:12px;">${file.id}</td>
+            <td>
+              ${cargarBtn}
+              <button class="btn-compartir" onclick="compartirLink('${file.id}', '${file.name}')">Compartir link</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    window.cargarEstudio = function(id) {
+      window.location.href = `viewer.html?fileId=${id}`;
+    }
+
+    window.compartirLink = function(id, name) {
+      const link = `${window.location.origin}${window.location.pathname.replace('index.html', 'viewer.html')}?fileId=${id}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(link).then(() => {
+          alert(`Link copiado al portapapeles:\n${link}`);
+        }).catch(() => {
+          prompt('Copie el siguiente link:', link);
+        });
+      } else {
+        prompt('Copie el siguiente link:', link);
+      }
+    }
+
+    window.showLoading = function() {
+      document.getElementById('list').innerHTML = '<div class="loading">Cargando archivos...</div>';
+    }
+
+    window.showError = function(msg) {
+      document.getElementById('error').innerHTML = `<div class="error">${msg}</div>`;
+    }
+
+    document.getElementById('search').addEventListener('input', renderTable);
+
+    // Cargar estudios al iniciar
+    loadStudies();
+  </script>
+</body>
 </html>
