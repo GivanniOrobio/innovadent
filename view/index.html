@@ -6,21 +6,13 @@
     <title>Visor DICOM - NUBIX</title>
     <link rel="manifest" href="../manifest.json">
     <link rel="icon" href="./image/nubix.png" type="image/png">
-    <link href="./css/app.bundle.css" rel="stylesheet" type="text/css">
-    <link href="./css/963.css" rel="stylesheet" type="text/css">
-    <link href="./css/5674.css" rel="stylesheet" type="text/css">
-    <link href="./css/6201.css" rel="stylesheet" type="text/css">
-    <link href="./css/7197.css" rel="stylesheet" type="text/css">
-    <link href="./css/8402.css" rel="stylesheet" type="text/css">
-    <link href="./css/9026.css" rel="stylesheet" type="text/css">
-    <link href="./css/2308.css" rel="stylesheet" type="text/css">
-    <link href="./css/4759.css" rel="stylesheet" type="text/css">
     <style>
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
             overflow: hidden;
+            background-color: #000;
         }
         #root {
             height: 100%;
@@ -43,6 +35,22 @@
         .loading.hidden {
             display: none;
         }
+        .loading h2 {
+            margin-bottom: 10px;
+        }
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #5fbcaa;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -51,51 +59,45 @@
         <div>
             <h2>Cargando visor DICOM...</h2>
             <p id="loading-info">Iniciando...</p>
+            <div class="spinner"></div>
         </div>
     </div>
 
+    <!-- OHIF Viewer desde CDN -->
+    <script src="https://unpkg.com/@ohif/viewer@4.12.2/dist/ohif-viewer.umd.js"></script>
+    
     <script>
-        // Configurar OHIF antes de que cargue el bundle
         const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
         const urlParams = new URLSearchParams(window.location.search);
         const fileId = urlParams.get('fileId');
         
+        document.getElementById('loading-info').textContent = fileId 
+            ? `Cargando estudio: ${fileId}` 
+            : 'Esperando parámetro fileId...';
+        
         if (fileId) {
+            // Configurar OHIF Viewer
             window.config = {
-                name: "config/default.js",
-                routerBasename: "/view/",
+                routerBasename: '/view/',
                 showStudyList: false,
                 showLoadingIndicator: true,
                 disableConfirmationPrompts: true,
-                showPatientInfo: "disabled",
+                showPatientInfo: 'disabled',
                 activateViewportBeforeInteraction: false,
-                useSharedArrayBuffer: "AUTO",
+                useSharedArrayBuffer: 'AUTO',
                 extensions: [],
                 modes: [],
                 customizationService: {},
-                showStudyList: false,
                 maxNumberOfWebWorkers: 3,
                 showWarningMessageForCrossOrigin: false,
-                showCPUFallbackMessage: false,
-                experimentalStudyBrowserSort: false,
-                strictZSpacingForVolumeViewport: true,
-                groupEnabledModesFirst: true,
-                allowMultiSelectExport: true,
-                maxNumRequests: { interaction: 100, thumbnail: 1, prefetch: 17 },
-                studyPrefetcher: {
-                    enabled: true,
-                    displaySetsCount: 2,
-                    maxNumPrefetchRequests: 5,
-                    order: "closest"
-                },
-                defaultDataSourceName: "dicomjson",
+                defaultDataSourceName: 'dicomjson',
                 dataSources: [
                     {
-                        namespace: "@ohif/extension-default.dataSourcesModule.dicomjson",
-                        sourceName: "dicomjson",
+                        namespace: '@ohif/extension-default.dataSourcesModule.dicomjson',
+                        sourceName: 'dicomjson',
                         configuration: {
                             friendlyName: `DICOM JSON - Estudio ${fileId}`,
-                            name: "dicomjson",
+                            name: 'dicomjson',
                             url: `${API_BASE}/study/${fileId}`,
                             headers: {
                                 'Content-Type': 'application/json'
@@ -105,6 +107,8 @@
                 ],
                 httpErrorHandler: (error) => {
                     console.warn('[HTTP Error]', error.status, error.message);
+                    document.getElementById('loading-info').textContent = 
+                        `Error ${error.status}: ${error.message}`;
                 },
                 whiteLabeling: {
                     createLogoComponentFn: function (React) {
@@ -125,51 +129,41 @@
                     },
                 },
                 hotkeys: [
-                    { commandName: "incrementActiveViewport", label: "Next Viewport", keys: ["right"] },
-                    { commandName: "decrementActiveViewport", label: "Previous Viewport", keys: ["left"] },
-                    { commandName: "rotateViewportCW", label: "Rotate Right", keys: ["r"] },
-                    { commandName: "rotateViewportCCW", label: "Rotate Left", keys: ["l"] },
-                    { commandName: "invertViewport", label: "Invert", keys: ["i"] },
-                    { commandName: "flipViewportHorizontal", label: "Flip Horizontally", keys: ["h"] },
-                    { commandName: "flipViewportVertical", label: "Flip Vertically", keys: ["v"] },
-                    { commandName: "scaleUpViewport", label: "Zoom In", keys: ["+"] },
-                    { commandName: "scaleDownViewport", label: "Zoom Out", keys: ["-"] },
-                    { commandName: "fitViewportToWindow", label: "Zoom to Fit", keys: ["="] },
-                    { commandName: "resetViewport", label: "Reset", keys: ["space"] },
-                    { commandName: "nextImage", label: "Next Image", keys: ["down"] },
-                    { commandName: "previousImage", label: "Previous Image", keys: ["up"] },
-                    { commandName: "previousViewportDisplaySet", label: "Previous Series", keys: ["pagedown"] },
-                    { commandName: "nextViewportDisplaySet", label: "Next Series", keys: ["pageup"] },
-                    { commandName: "setToolActive", commandOptions: { toolName: "Zoom" }, label: "Zoom", keys: ["z"] },
-                    { commandName: "windowLevelPreset1", label: "W/L Preset 1", keys: ["1"] },
-                    { commandName: "windowLevelPreset2", label: "W/L Preset 2", keys: ["2"] },
-                    { commandName: "windowLevelPreset3", label: "W/L Preset 3", keys: ["3"] },
-                    { commandName: "windowLevelPreset4", label: "W/L Preset 4", keys: ["4"] },
-                    { commandName: "windowLevelPreset5", label: "W/L Preset 5", keys: ["5"] },
-                    { commandName: "windowLevelPreset6", label: "W/L Preset 6", keys: ["6"] },
-                    { commandName: "windowLevelPreset7", label: "W/L Preset 7", keys: ["7"] },
-                    { commandName: "windowLevelPreset8", label: "W/L Preset 8", keys: ["8"] },
-                    { commandName: "windowLevelPreset9", label: "W/L Preset 9", keys: ["9"] }
+                    { commandName: 'incrementActiveViewport', label: 'Next Viewport', keys: ['right'] },
+                    { commandName: 'decrementActiveViewport', label: 'Previous Viewport', keys: ['left'] },
+                    { commandName: 'rotateViewportCW', label: 'Rotate Right', keys: ['r'] },
+                    { commandName: 'rotateViewportCCW', label: 'Rotate Left', keys: ['l'] },
+                    { commandName: 'invertViewport', label: 'Invert', keys: ['i'] },
+                    { commandName: 'flipViewportHorizontal', label: 'Flip Horizontally', keys: ['h'] },
+                    { commandName: 'flipViewportVertical', label: 'Flip Vertically', keys: ['v'] },
+                    { commandName: 'scaleUpViewport', label: 'Zoom In', keys: ['+'] },
+                    { commandName: 'scaleDownViewport', label: 'Zoom Out', keys: ['-'] },
+                    { commandName: 'fitViewportToWindow', label: 'Zoom to Fit', keys: ['='] },
+                    { commandName: 'resetViewport', label: 'Reset', keys: ['space'] },
+                    { commandName: 'nextImage', label: 'Next Image', keys: ['down'] },
+                    { commandName: 'previousImage', label: 'Previous Image', keys: ['up'] },
+                    { commandName: 'windowLevel', label: 'Window/Level', keys: ['w'] },
+                    { commandName: 'zoom', label: 'Zoom', keys: ['z'] },
+                    { commandName: 'pan', label: 'Pan', keys: ['p'] },
+                    { commandName: 'length', label: 'Length Tool', keys: ['1'] },
+                    { commandName: 'angle', label: 'Angle Tool', keys: ['2'] },
+                    { commandName: 'stackScroll', label: 'Stack Scroll', keys: ['s'] }
                 ]
             };
             
-            document.getElementById('loading-info').textContent = `Cargando estudio: ${fileId}`;
             console.log('[OHIF Config] Initializing viewer with study:', fileId);
             console.log('[OHIF Config] API URL:', `${API_BASE}/study/${fileId}`);
+            
+            // Ocultar loading cuando OHIF cargue
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    document.getElementById('loading').classList.add('hidden');
+                }, 3000);
+            });
         } else {
-            document.getElementById('loading-info').textContent = 'Error: No se especificó fileId en la URL';
+            document.getElementById('loading-info').textContent = 
+                'Error: No se especificó fileId en la URL';
         }
-    </script>
-    
-    <script src="./javascript/app.bundle.a7e524c0e2cef2b01e35.js"></script>
-    
-    <script>
-        // Ocultar loading cuando OHIF cargue
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                document.getElementById('loading').classList.add('hidden');
-            }, 2000);
-        });
     </script>
 </body>
 </html>
