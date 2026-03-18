@@ -1,8 +1,7 @@
 // drive-utils.js - Shared utilities for NUBIX DICOM Viewer
-const API_BASE = `https://dcom-view-server.onrender.com/api/drive`;
+const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
 
 window.driveUtils = {
-
   async fetchList() {
     const res = await fetch(`${API_BASE}/list-drive`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -40,5 +39,5 @@ window.driveUtils = {
     // Update window.config.dataSources[0].configuration.query.study = studyUrl;
     // Or set iframe src
   }
-}
+};
 

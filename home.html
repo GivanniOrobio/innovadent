@@ -1,137 +1,138 @@
 <!DOCTYPE html>
 <html>
-
 <head>
   <title>Seleccionar Estudio - NUBIX</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: Arial;
-      max-width: 800px;
-      margin: 50px auto;
-      padding: 20px;
-    }
-
-    input,
-    select,
-    button {
-      padding: 10px;
-      margin: 10px 0;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    #list {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .study-item {
-      padding: 10px;
-      border: 1px solid #ddd;
-      margin: 5px 0;
-      cursor: pointer;
-    }
-
-    .study-item:hover {
-      background: #f0f8ff;
-    }
-
-    .loading {
-      text-align: center;
-    }
-
-    .error {
-      color: red;
-    }
+    body { font-family: Arial; max-width: 1000px; margin: 50px auto; padding: 20px; }
+    h1 { text-align: center; }
+    input, button { padding: 10px; margin: 10px 0; box-sizing: border-box; }
+    input { width: 70%; }
+    button { width: 25%; cursor: pointer; }
+    .loading { text-align: center; padding: 20px; }
+    .error { color: red; text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #36404A; color: white; }
+    tr:hover { background-color: #f0f8ff; }
+    .btn-cargar, .btn-compartir { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 5px; }
+    .btn-cargar { background-color: #36404A; color: white; }
+    .btn-cargar:hover { background-color: #2c353f; }
+    .btn-compartir { background-color: #4CAF50; color: white; }
+    .btn-compartir:hover { background-color: #45a049; }
+    .zip-file { background-color: #fff3cd; }
   </style>
 </head>
-
 <body>
-  <h1>Seleccionar Estudio DICOM desde Google Drive</h1>
-  <input id="search" placeholder="Buscar por nombre...">
-  <button onclick="loadStudies()">Cargar Estudios</button>
-  <div id="list" class="loading">Presione cargar para listar ZIPs</div>
+  <h1>Estudios DICOM - Google Drive</h1>
+  <div style="text-align: center;">
+    <input id="search" placeholder="Buscar por nombre..." type="text">
+    <button onclick="loadStudies()">Actualizar lista</button>
+  </div>
+  <div id="list" class="loading">Presione "Actualizar lista" para cargar los archivos</div>
   <div id="error"></div>
   <script src="javascripts/drive-utils.js"></script>
   <script>
+    const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
     let studies = [];
+
     function loadStudies() {
       showLoading();
-      driveUtils.fetchList()
+      fetch(`${API_BASE}/list-drive`)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
         .then(data => {
           studies = data.files || [];
-          renderList();
+          renderTable();
         })
         .catch(err => showError('Error cargando estudios: ' + err.message));
     }
-    function renderList() {
+
+    function isZip(file) {
+      return file.mimeType && file.mimeType.includes('zip');
+    }
+
+    function renderTable() {
       const search = document.getElementById('search').value.toLowerCase();
-      const list = document.getElementById('list');
-      list.innerHTML = studies.filter(s => s.name.toLowerCase().includes(search))
-        .map(s => `<div class="study-item" onclick="selectStudy('${s.id}', '${s.name}')">
-          <strong>${s.name}</strong><br>Type: ${s.mimeType}<br>ID: ${s.id}
-        </div>`).join('');
-
-    }
-    function selectStudy(id, name) {
-      if (confirm(`Abrir "${name}" en visor?`)) {
-        window.location.href = `index.html?fileId=${id}`;
+      const container = document.getElementById('list');
+      
+      const filtered = studies.filter(s => s.name.toLowerCase().includes(search));
+      
+      if (filtered.length === 0) {
+        container.innerHTML = '<p style="text-align:center;">No se encontraron archivos</p>';
+        return;
       }
-    }
-    document.getElementById('search').oninput = renderList;
-    function showLoading() { document.getElementById('list').innerHTML = 'Cargando...'; }
-    function showError(msg) { document.getElementById('error').innerHTML = `<div class="error">${msg}</div>`; }
-  </script>
-  <script>
-   
-    window.driveUtils = {
 
-      async fetchList() {
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>ID</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      filtered.forEach(file => {
+        const isZipFile = isZip(file);
+        const rowClass = isZipFile ? 'zip-file' : '';
+        const cargarBtn = isZipFile 
+          ? `<button class="btn-cargar" onclick="cargarEstudio('${file.id}')">Cargar</button>`
+          : `<span style="color:#999;">No compatible</span>`;
         
-        API_BASE = `https://dcom-view-server.onrender.com/api/drive`;
+        html += `
+          <tr class="${rowClass}">
+            <td><strong>${file.name}</strong></td>
+            <td>${file.mimeType || 'N/A'}</td>
+            <td style="font-family:monospace;font-size:12px;">${file.id}</td>
+            <td>
+              ${cargarBtn}
+              <button class="btn-compartir" onclick="compartirLink('${file.id}', '${file.name}')">Compartir link</button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
 
-        const res = await fetch(`${API_BASE}/list-drive`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        console.log("%c [driveUtils]", "color:yellow", res)
-        return res.json();
-      },
-      async fetchStudy(fileId) {
-        const res = await fetch(`${API_BASE}/study/${fileId}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      },
-      generateOHIFUrl(fileId) {
-        return `https://viewer.ohif.org/viewer?url=${encodeURIComponent(`${API_BASE}/study/${fileId}`)}`;
-      },
+    function cargarEstudio(id) {
+      window.location.href = `index.html?fileId=${id}`;
+    }
 
-
-      generateManifest(study) {
-        const patient = study.studies[0];
-        return {
-          name: `Estudio ${patient.PatientName || 'NUBIX'}`,
-          short_name: patient.PatientID,
-          icons: [ /* add icons */],
-          start_url: `./index.html?fileId=${patient.StudyID}`,
-          display: 'standalone',
-          theme_color: '#36404A'
-        };
-      },
-      copyShareLink(fileId, name) {
-        const link = `${window.location.origin}${window.location.pathname}?fileId=${fileId}`;
-        navigator.clipboard.writeText(link).then(() => alert(`Link copiado: ${name}`));
-      },
-      loadViewer(fileId) {
-        // For iframe or OHIF config update
-        const studyUrl = `${API_BASE}/study/${fileId}`;
-        // Update window.config.dataSources[0].configuration.query.study = studyUrl;
-        // Or set iframe src
+    function compartirLink(id, name) {
+      const link = `${window.location.origin}${window.location.pathname.replace('home.html', 'index.html')}?fileId=${id}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(link).then(() => {
+          alert(`Link copiado al portapapeles:\n${link}`);
+        }).catch(() => {
+          prompt('Copie el siguiente link:', link);
+        });
+      } else {
+        prompt('Copie el siguiente link:', link);
       }
     }
 
-  </script>
-  <script src="config/default.js"></script>
-</body>
+    document.getElementById('search').addEventListener('input', renderTable);
 
+    function showLoading() {
+      document.getElementById('list').innerHTML = '<div class="loading">Cargando archivos...</div>';
+    }
+
+    function showError(msg) {
+      document.getElementById('error').innerHTML = `<div class="error">${msg}</div>`;
+    }
+
+    // Cargar estudios al iniciar
+    loadStudies();
+  </script>
+</body>
 </html>
+

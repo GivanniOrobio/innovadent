@@ -97,19 +97,54 @@
 
 <body>
     <div class="container">
-        <div class="container__left left"><iframe id="report" name="report"
-                src="https://app.nubix.cloud/reporte?id=682168&amp;organization=auth0%7C683000ca8c1980731dc52d21&amp;access_code=8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx"
-                frameborder="0"></iframe>
+<div id="report-panel">Cargando...</div>
             <div class="report-overlay"><button id="close-btn" type="button">×</button><button id="fullscreen-btn"
                     type="button">⛶</button></div>
+
         </div>
         <div class="resizer" id="dragMe"></div>
-        <div class="container__right right"><iframe id="viewer" name="viewer"
-                src="https://ver.nubix.cloud/viewer?url=https%3A%2F%2Fapp.nubix.cloud%2Fapi%2Fv1%2Forganization%2Fstudy%2F682168%2Ffiles%2Fohif%3Forganization%3Dauth0%7C683000ca8c1980731dc52d21%26access_code%3D8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx%26pin%3Dnull"
-                frameborder="0"></iframe></div>
+        <div class="container__right right"><iframe id="viewer" name="viewer" src="about:blank" frameborder="0" style="min-height: 100%; min-width: 100%; background-color: #252525;"></iframe></div>
+
     </div>
+<script src="javascripts/drive-utils.js"></script>
+    <script src="config/default.js"></script>
+
+
+    <script>
+      // Dynamic OHIF init
+      async function initViewer(fileId) {
+        if (!fileId) return;
+        const studyData = await driveUtils.fetchStudy(fileId);
+        document.getElementById('viewer').src = driveUtils.generateOHIFUrl(fileId);
+        updateReportPanel(studyData, fileId);
+      }
+
+      function updateReportPanel(studyData, fileId) {
+        const patient = studyData.studies[0];
+        const manifest = driveUtils.generateManifest({studies: [patient]});
+        document.getElementById('report-panel').innerHTML = `
+          <h2>${patient.PatientName}</h2>
+          <p>ID: ${patient.PatientID}</p>
+          <p>Manifest: <pre>${JSON.stringify(manifest, null, 2)}</pre></p>
+          <button onclick="driveUtils.copyShareLink('${fileId}', '${patient.PatientName}')">Copiar Link Compartir</button>
+        `;
+      }
+      // On load
+      window.addEventListener('load', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileId = urlParams.get('fileId');
+        if (fileId) {
+          initViewer(fileId);
+        } else {
+          document.getElementById('viewer').src = 'https://viewer.ohif.org/viewer';
+        }
+
+      });
+
+    </script>
     <script src="javascripts/split.js"></script>
     <script src="javascripts/dist/split-reporte.min.js"></script>
 </body>
+
 
 </html>
