@@ -7,13 +7,13 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="icon" href="./image/nubix.png" type="image/png">
     
-    <!-- Cornerstone.js -->
+    <!-- Cornerstone.js - Versiones estables -->
     <script src="https://unpkg.com/hammerjs@2.0.8/hammer.js"></script>
     <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
     <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
     <script src="https://unpkg.com/cornerstone-math@0.1.9/dist/cornerstoneMath.js"></script>
-    <script src="https://unpkg.com/cornerstone-tools@6.0.10/dist/cornerstoneTools.js"></script>
-    <script src="https://unpkg.com/cornerstone-wado-image-loader@4.14.0/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+    <script src="https://unpkg.com/cornerstone-tools@4.20.1/dist/cornerstoneTools.js"></script>
+    <script src="https://unpkg.com/cornerstone-wado-image-loader@3.4.0/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
     
     <style>
         body, html {
@@ -118,10 +118,6 @@
             color: #aaa;
             font-size: 11px;
         }
-        .success-msg {
-            color: #5fbcaa;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
@@ -130,7 +126,6 @@
         <p id="loading-info">Iniciando...</p>
         <div class="spinner"></div>
         <p id="error-msg" class="error-msg" style="display:none;"></p>
-        <p id="success-msg" class="success-msg" style="display:none;"></p>
     </div>
     
     <div class="container">
@@ -139,7 +134,7 @@
     
     <div class="info-bar" style="display:none;" id="info-bar">
         <span id="patient-info"></span>
-        <span class="tools-help">🖱️ Wheel: Zoom | Click+Drag: W/L | Right-click: Pan</span>
+        <span class="tools-help">🖱️ Click+Drag: W/L | Right-click: Pan | Wheel: Zoom</span>
     </div>
 
     <script>
@@ -149,7 +144,6 @@
         
         const loadingInfo = document.getElementById('loading-info');
         const errorMsg = document.getElementById('error-msg');
-        const successMsg = document.getElementById('success-msg');
         const loadingEl = document.getElementById('loading');
         const infoBar = document.getElementById('info-bar');
         
@@ -170,7 +164,8 @@
                 httpOptions: {
                     headers: {
                         'Accept': 'application/dicom',
-                    }
+                    },
+                    withCredentials: false,
                 }
             });
             
@@ -225,7 +220,7 @@
                                 Serie ${series.SeriesNumber || ''} | ${series.Modality || ''} | 
                                 ${series.instances ? series.instances.length : 0} imágenes
                             </div>
-                            <div class="viewport-element" data-series-index="${container.children.length}"></div>
+                            <div class="viewport-element"></div>
                         `;
                         container.appendChild(viewportDiv);
                         
@@ -247,15 +242,16 @@
                                     series.instances,
                                     () => {
                                         seriesLoaded++;
-                                        if (seriesLoaded === totalSeries) {
-                                            successMsg.textContent = `✓ ${totalSeries} serie(s) cargada(s) correctamente`;
-                                            successMsg.style.display = 'block';
+                                        console.log(`[DICOM] Series cargadas: ${seriesLoaded}/${totalSeries}`);
+                                        if (seriesLoaded >= totalSeries) {
                                             setTimeout(() => {
                                                 loadingEl.classList.add('hidden');
-                                            }, 1000);
+                                            }, 500);
                                         }
                                     }
                                 );
+                            } else {
+                                seriesLoaded++;
                             }
                         } else {
                             seriesLoaded++;
@@ -270,7 +266,7 @@
                 
             } catch (err) {
                 console.error('[DICOM] Error:', err);
-                errorMsg.textContent = `Error: ${err.message}. Verifica que el archivo ZIP contenga DICOMs válidos.`;
+                errorMsg.textContent = `Error: ${err.message}`;
                 errorMsg.style.display = 'block';
                 document.querySelector('.spinner').style.display = 'none';
             }
@@ -281,35 +277,42 @@
                 // Habilitar elemento Cornerstone
                 cornerstone.enable(element);
                 
-                // Cargar imagen usando wado-image-loader
+                // Cargar imagen
+                console.log('[Viewport] Cargando:', imageUrl);
                 const image = await cornerstone.loadAndCacheImage(imageUrl);
-                
-                console.log('[DICOM] Imagen cargada:', image);
+                console.log('[Viewport] Imagen cargada:', image);
                 
                 // Mostrar imagen
                 cornerstone.displayImage(element, image);
                 
                 // Configurar herramientas
-                const Tools = cornerstoneTools;
-                Tools.external.cornerstone = cornerstone;
-                Tools.external.Hammer = Hammer;
-                Tools.external.cornerstoneMath = cornerstoneMath;
+                cornerstoneTools.external.cornerstone = cornerstone;
+                cornerstoneTools.external.Hammer = Hammer;
+                cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
                 
-                Tools.init();
+                cornerstoneTools.init();
                 
                 // Añadir herramientas
-                const WwwcTool = Tools.WwwcTool;
-                const PanTool = Tools.PanTool;
-                const ZoomTool = Tools.ZoomTool;
+                const WwwcTool = cornerstoneTools.WwwcTool;
+                const PanTool = cornerstoneTools.PanTool;
+                const ZoomTool = cornerstoneTools.ZoomTool;
+                const StackScrollTool = cornerstoneTools.StackScrollTool;
                 
-                Tools.addTool(WwwcTool);
-                Tools.addTool(PanTool);
-                Tools.addTool(ZoomTool);
+                cornerstoneTools.addTool(WwwcTool);
+                cornerstoneTools.addTool(PanTool);
+                cornerstoneTools.addTool(ZoomTool);
+                cornerstoneTools.addTool(StackScrollTool);
                 
                 // Configurar interacciones
-                Tools.setToolActive('Wwwc', { mouseButton: 1 });
-                Tools.setToolActive('Pan', { mouseButton: 2 });
-                Tools.setToolActive('Zoom', { mouseButton: 1, shiftKey: true });
+                cornerstoneTools.setToolActive('Wwwc', { mouseButton: 1 });
+                cornerstoneTools.setToolActive('Pan', { mouseButton: 2 });
+                cornerstoneTools.setToolActive('Zoom', { mouseButton: 1, shiftKey: true });
+                
+                // Scroll con rueda para stack
+                element.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    // Implementar scroll de stack si hay múltiples imágenes
+                });
                 
                 viewports.push({ element, instances });
                 
@@ -319,7 +322,6 @@
                 console.error('[Viewport] Error:', err);
                 element.innerHTML += `<div style="color:#ff6b6b;padding:10px;font-size:12px;">Error: ${err.message}</div>`;
                 
-                // Intentar continuar con las demás series
                 if (onComplete) onComplete();
             }
         }
