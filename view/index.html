@@ -7,15 +7,13 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="icon" href="./image/nubix.png" type="image/png">
     
-    <!-- Cornerstone.js para visualizar DICOM -->
+    <!-- Cornerstone.js -->
     <script src="https://unpkg.com/hammerjs@2.0.8/hammer.js"></script>
     <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
     <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
     <script src="https://unpkg.com/cornerstone-math@0.1.9/dist/cornerstoneMath.js"></script>
     <script src="https://unpkg.com/cornerstone-tools@6.0.10/dist/cornerstoneTools.js"></script>
-    <script src="https://unpkg.com/cornerstone-web-image-loader@2.1.1/dist/cornerstoneWebImageLoader.min.js"></script>
     <script src="https://unpkg.com/cornerstone-wado-image-loader@4.14.0/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
-    <script src="https://unpkg.com/hammerjs@2.0.8/hammer.min.js"></script>
     
     <style>
         body, html {
@@ -120,6 +118,10 @@
             color: #aaa;
             font-size: 11px;
         }
+        .success-msg {
+            color: #5fbcaa;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -128,6 +130,7 @@
         <p id="loading-info">Iniciando...</p>
         <div class="spinner"></div>
         <p id="error-msg" class="error-msg" style="display:none;"></p>
+        <p id="success-msg" class="success-msg" style="display:none;"></p>
     </div>
     
     <div class="container">
@@ -136,7 +139,7 @@
     
     <div class="info-bar" style="display:none;" id="info-bar">
         <span id="patient-info"></span>
-        <span class="tools-help">🖱️ Wheel: Zoom | Click+Drag: W/L | Right-click: Pan | +/−: Scroll</span>
+        <span class="tools-help">🖱️ Wheel: Zoom | Click+Drag: W/L | Right-click: Pan</span>
     </div>
 
     <script>
@@ -146,18 +149,32 @@
         
         const loadingInfo = document.getElementById('loading-info');
         const errorMsg = document.getElementById('error-msg');
+        const successMsg = document.getElementById('success-msg');
         const loadingEl = document.getElementById('loading');
         const infoBar = document.getElementById('info-bar');
         
         let studyData = null;
         let viewports = [];
         
-        // Configurar Cornerstone WADO
+        // Configurar cornerstone-wado-image-loader
         if (window.cornerstoneWADOImageLoader) {
             cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
             cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
             
-            // Configurar web workers para decodificación
+            // Configuración para CORS
+            cornerstoneWADOImageLoader.configure({
+                useWebWorkers: true,
+                decodeConfig: {
+                    convertFloatPixelDataToInt: false,
+                },
+                httpOptions: {
+                    headers: {
+                        'Accept': 'application/dicom',
+                    }
+                }
+            });
+            
+            // Configurar web workers
             const config = {
                 maxWebWorkers: navigator.hardwareConcurrency || 4,
                 startWebWorkersOnDemand: true,
@@ -181,15 +198,6 @@
                 studyData = await response.json();
                 console.log('[DICOM] Estudio cargado:', studyData);
                 
-                // Debug: mostrar URLs de imágenes
-                if (studyData.studies && studyData.studies[0].series) {
-                    studyData.studies[0].series.forEach((s, idx) => {
-                        if (s.instances && s.instances.length > 0) {
-                            console.log(`[DICOM] Serie ${idx}:`, s.instances[0].wadoUri || s.instances[0].wadoUrl);
-                        }
-                    });
-                }
-                
                 if (!studyData.studies || studyData.studies.length === 0) {
                     throw new Error('No se encontraron estudios en la respuesta');
                 }
@@ -198,12 +206,15 @@
                 
                 // Mostrar información del paciente
                 document.getElementById('patient-info').textContent = 
-                    `${study.PatientName || 'N/A'} | ${study.PatientID || ''} | ${study.StudyDate || ''}`;
+                    `${study.PatientName || 'N/A'} | ID: ${study.PatientID || ''} | ${formatDate(study.StudyDate)}`;
                 infoBar.style.display = 'flex';
                 
                 // Crear viewports para cada serie
                 const container = document.getElementById('series-container');
                 container.innerHTML = '';
+                
+                let seriesLoaded = 0;
+                const totalSeries = study.series ? study.series.length : 0;
                 
                 if (study.series && study.series.length > 0) {
                     for (const series of study.series) {
@@ -221,7 +232,6 @@
                         // Cargar primera imagen de la serie
                         if (series.instances && series.instances.length > 0) {
                             const instance = series.instances[0];
-                            // Obtener URL y asegurar que tenga el prefijo wadouri:
                             let imageUrl = instance.wadoUri || instance.wadoUrl;
                             
                             if (imageUrl && !imageUrl.startsWith('wadouri:')) {
@@ -231,16 +241,32 @@
                             console.log('[DICOM] Cargando imagen:', imageUrl);
                             
                             if (imageUrl) {
-                                loadViewport(viewportDiv.querySelector('.viewport-element'), imageUrl, series.instances);
+                                loadViewport(
+                                    viewportDiv.querySelector('.viewport-element'), 
+                                    imageUrl, 
+                                    series.instances,
+                                    () => {
+                                        seriesLoaded++;
+                                        if (seriesLoaded === totalSeries) {
+                                            successMsg.textContent = `✓ ${totalSeries} serie(s) cargada(s) correctamente`;
+                                            successMsg.style.display = 'block';
+                                            setTimeout(() => {
+                                                loadingEl.classList.add('hidden');
+                                            }, 1000);
+                                        }
+                                    }
+                                );
                             }
+                        } else {
+                            seriesLoaded++;
                         }
                     }
                 }
                 
-                // Ocultar loading
-                setTimeout(() => {
+                // Si no hay series, ocultar loading inmediatamente
+                if (totalSeries === 0) {
                     loadingEl.classList.add('hidden');
-                }, 500);
+                }
                 
             } catch (err) {
                 console.error('[DICOM] Error:', err);
@@ -250,16 +276,15 @@
             }
         }
         
-        async function loadViewport(element, imageUrl, instances) {
+        async function loadViewport(element, imageUrl, instances, onComplete) {
             try {
-                const elementId = 'viewport-' + Math.random().toString(36).substr(2, 9);
-                element.id = elementId;
-                
                 // Habilitar elemento Cornerstone
-                const csElement = cornerstone.enable(element);
+                cornerstone.enable(element);
                 
-                // Cargar imagen
+                // Cargar imagen usando wado-image-loader
                 const image = await cornerstone.loadAndCacheImage(imageUrl);
+                
+                console.log('[DICOM] Imagen cargada:', image);
                 
                 // Mostrar imagen
                 cornerstone.displayImage(element, image);
@@ -273,34 +298,35 @@
                 Tools.init();
                 
                 // Añadir herramientas
-                const WlTool = Tools.WwwcTool;
+                const WwwcTool = Tools.WwwcTool;
                 const PanTool = Tools.PanTool;
                 const ZoomTool = Tools.ZoomTool;
-                const StackScrollTool = Tools.StackScrollTool;
                 
-                Tools.addTool(WlTool);
+                Tools.addTool(WwwcTool);
                 Tools.addTool(PanTool);
                 Tools.addTool(ZoomTool);
-                Tools.addTool(StackScrollTool);
                 
                 // Configurar interacciones
                 Tools.setToolActive('Wwwc', { mouseButton: 1 });
                 Tools.setToolActive('Pan', { mouseButton: 2 });
                 Tools.setToolActive('Zoom', { mouseButton: 1, shiftKey: true });
                 
-                // Scroll con rueda
-                element.addEventListener('wheel', (e) => {
-                    e.preventDefault();
-                    const delta = e.deltaY > 0 ? 1 : -1;
-                    // Aquí se podría implementar scroll de stack
-                });
+                viewports.push({ element, instances });
                 
-                viewports.push({ element: csElement, instances });
+                if (onComplete) onComplete();
                 
             } catch (err) {
                 console.error('[Viewport] Error:', err);
-                element.innerHTML += `<div style="color:red;padding:10px;">Error: ${err.message}</div>`;
+                element.innerHTML += `<div style="color:#ff6b6b;padding:10px;font-size:12px;">Error: ${err.message}</div>`;
+                
+                // Intentar continuar con las demás series
+                if (onComplete) onComplete();
             }
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr.length !== 8) return '';
+            return `${dateStr.substring(6,8)}/${dateStr.substring(4,6)}/${dateStr.substring(0,4)}`;
         }
         
         // Iniciar
