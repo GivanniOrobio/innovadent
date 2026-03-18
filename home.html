@@ -34,10 +34,9 @@
   <div id="error"></div>
   <script src="javascripts/drive-utils.js"></script>
   <script>
-    const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
     let studies = [];
 
-    function loadStudies() {
+    window.loadStudies = function() {
       showLoading();
       fetch(`${API_BASE}/list-drive`)
         .then(res => {
@@ -51,16 +50,16 @@
         .catch(err => showError('Error cargando estudios: ' + err.message));
     }
 
-    function isZip(file) {
+    window.isZip = function(file) {
       return file.mimeType && file.mimeType.includes('zip');
     }
 
-    function renderTable() {
+    window.renderTable = function() {
       const search = document.getElementById('search').value.toLowerCase();
       const container = document.getElementById('list');
-      
+
       const filtered = studies.filter(s => s.name.toLowerCase().includes(search));
-      
+
       if (filtered.length === 0) {
         container.innerHTML = '<p style="text-align:center;">No se encontraron archivos</p>';
         return;
@@ -78,14 +77,14 @@
           </thead>
           <tbody>
       `;
-      
+
       filtered.forEach(file => {
         const isZipFile = isZip(file);
         const rowClass = isZipFile ? 'zip-file' : '';
-        const cargarBtn = isZipFile 
+        const cargarBtn = isZipFile
           ? `<button class="btn-cargar" onclick="cargarEstudio('${file.id}')">Cargar</button>`
           : `<span style="color:#999;">No compatible</span>`;
-        
+
         html += `
           <tr class="${rowClass}">
             <td><strong>${file.name}</strong></td>
@@ -98,16 +97,16 @@
           </tr>
         `;
       });
-      
+
       html += '</tbody></table>';
       container.innerHTML = html;
     }
 
-    function cargarEstudio(id) {
+    window.cargarEstudio = function(id) {
       window.location.href = `index.html?fileId=${id}`;
     }
 
-    function compartirLink(id, name) {
+    window.compartirLink = function(id, name) {
       const link = `${window.location.origin}${window.location.pathname.replace('home.html', 'index.html')}?fileId=${id}`;
       if (navigator.clipboard) {
         navigator.clipboard.writeText(link).then(() => {
@@ -120,15 +119,15 @@
       }
     }
 
-    document.getElementById('search').addEventListener('input', renderTable);
-
-    function showLoading() {
+    window.showLoading = function() {
       document.getElementById('list').innerHTML = '<div class="loading">Cargando archivos...</div>';
     }
 
-    function showError(msg) {
+    window.showError = function(msg) {
       document.getElementById('error').innerHTML = `<div class="error">${msg}</div>`;
     }
+
+    document.getElementById('search').addEventListener('input', renderTable);
 
     // Cargar estudios al iniciar
     loadStudies();
