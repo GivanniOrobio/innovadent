@@ -7,12 +7,16 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="icon" href="./image/nubix.png" type="image/png">
     
-    <!-- Cornerstone.js - Scripts base -->
-    <script src="https://unpkg.com/hammerjs@2.0.8/hammer.js"></script>
-    <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
-    <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
-    <script src="https://unpkg.com/cornerstone-math@0.1.9/dist/cornerstoneMath.js"></script>
-    <script src="https://unpkg.com/cornerstone-tools@4.20.1/dist/cornerstoneTools.js"></script>
+    <!-- OHIF Viewer CSS local -->
+    <link href="./css/app.bundle.css" rel="stylesheet" type="text/css">
+    <link href="./css/963.css" rel="stylesheet" type="text/css">
+    <link href="./css/5674.css" rel="stylesheet" type="text/css">
+    <link href="./css/6201.css" rel="stylesheet" type="text/css">
+    <link href="./css/7197.css" rel="stylesheet" type="text/css">
+    <link href="./css/8402.css" rel="stylesheet" type="text/css">
+    <link href="./css/9026.css" rel="stylesheet" type="text/css">
+    <link href="./css/2308.css" rel="stylesheet" type="text/css">
+    <link href="./css/4759.css" rel="stylesheet" type="text/css">
     
     <style>
         body, html {
@@ -21,43 +25,10 @@
             height: 100%;
             overflow: hidden;
             background-color: #000;
-            font-family: Arial, sans-serif;
         }
-        .container {
-            display: flex;
+        #root {
             height: 100%;
             width: 100%;
-        }
-        .series-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            padding: 4px;
-            background: #1a1a1a;
-        }
-        .viewport {
-            position: relative;
-            background: #000;
-            min-width: 200px;
-            min-height: 200px;
-            flex: 1 1 300px;
-            max-width: 100%;
-            max-height: 50%;
-        }
-        .viewport-element {
-            width: 100%;
-            height: 100%;
-        }
-        .viewport-label {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            color: #fff;
-            font-size: 12px;
-            background: rgba(0,0,0,0.6);
-            padding: 4px 8px;
-            border-radius: 4px;
-            pointer-events: none;
         }
         .loading {
             position: fixed;
@@ -66,18 +37,15 @@
             right: 0;
             bottom: 0;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             background-color: #252525;
             color: white;
+            font-family: Arial, sans-serif;
             z-index: 9999;
         }
         .loading.hidden {
             display: none;
-        }
-        .loading h2 {
-            margin-bottom: 10px;
         }
         .spinner {
             border: 4px solid #333;
@@ -92,243 +60,108 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .error-msg {
-            color: #ff6b6b;
-            margin-top: 10px;
-            font-size: 14px;
-            max-width: 80%;
-            text-align: center;
-            padding: 0 20px;
-        }
-        .info-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0,0,0,0.8);
-            color: #fff;
-            padding: 8px 16px;
-            font-size: 12px;
-            display: flex;
-            justify-content: space-between;
-            z-index: 100;
-        }
-        .tools-help {
-            color: #aaa;
-            font-size: 11px;
-        }
     </style>
 </head>
 <body>
+    <div id="root"></div>
     <div id="loading" class="loading">
-        <h2>Cargando visor DICOM...</h2>
-        <p id="loading-info">Iniciando...</p>
-        <div class="spinner"></div>
-        <p id="error-msg" class="error-msg" style="display:none;"></p>
-    </div>
-    
-    <div class="container">
-        <div id="series-container" class="series-container"></div>
-    </div>
-    
-    <div class="info-bar" style="display:none;" id="info-bar">
-        <span id="patient-info"></span>
-        <span class="tools-help">🖱️ Click+Drag: W/L | Right-click: Pan | Wheel: Zoom</span>
+        <div>
+            <h2>Cargando visor DICOM...</h2>
+            <p id="loading-info">Iniciando...</p>
+            <div class="spinner"></div>
+        </div>
     </div>
 
+    <!-- Configurar OHIF ANTES del bundle -->
     <script>
         const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
         const urlParams = new URLSearchParams(window.location.search);
         const fileId = urlParams.get('fileId');
         
-        const loadingInfo = document.getElementById('loading-info');
-        const errorMsg = document.getElementById('error-msg');
-        const loadingEl = document.getElementById('loading');
-        const infoBar = document.getElementById('info-bar');
-        
-        let studyData = null;
-        let viewports = [];
-        
-        // Loader personalizado para DICOM - usa fetch directo
-        cornerstone.registerImageLoader('wadouri', async (imageId) => {
-            const url = imageId.replace('wadouri:', '');
-            console.log('[CustomLoader] Cargando:', url);
-            
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
-            const arrayBuffer = await response.arrayBuffer();
-            const byteArray = new Uint8Array(arrayBuffer);
-            
-            // Parsear DICOM
-            const dataSet = dicomParser.parseDicom(byteArray);
-            
-            // Crear imagen para cornerstone
-            const width = dataSet.uint16('x00280011');  // Columns
-            const height = dataSet.uint16('x00280010'); // Rows
-            const pixelData = dataSet.elements.x7fe00010;
-            
-            if (!pixelData) {
-                throw new Error('No pixel data found');
-            }
-            
-            const pixelDataValue = dataSet.byteArray.slice(
-                pixelData.dataOffset, 
-                pixelData.dataOffset + pixelData.length
-            );
-            
-            // Crear imagen en escala de grises
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            const imageData = ctx.createImageData(width, height);
-            
-            // Convertir pixel data a RGB
-            for (let i = 0; i < width * height; i++) {
-                const pixelValue = pixelDataValue[i * 2] + (pixelDataValue[i * 2 + 1] << 8);
-                const normalized = Math.min(255, (pixelValue / 4096) * 255);
-                imageData.data[i * 4] = normalized;
-                imageData.data[i * 4 + 1] = normalized;
-                imageData.data[i * 4 + 2] = normalized;
-                imageData.data[i * 4 + 3] = 255;
-            }
-            
-            ctx.putImageData(imageData, 0, 0);
-            
-            // Crear objeto imagen cornerstone
-            return {
-                imageId,
-                minPixelValue: 0,
-                maxPixelValue: 255,
-                slope: 1,
-                intercept: 0,
-                windowCenter: 128,
-                windowWidth: 255,
-                render: () => {
-                    return new Promise((resolve) => {
-                        const img = new Image();
-                        img.onload = () => resolve(img);
-                        img.src = canvas.toDataURL();
-                    });
-                },
-                getPixelData: () => pixelDataValue,
-                rows: height,
-                columns: width,
-                height,
-                width,
-                color: false,
-                columnPixelSpacing: 1,
-                rowPixelSpacing: 1,
-                invert: false,
-                sizeInBytes: byteArray.length
-            };
-        });
-        
-        async function loadStudy() {
-            try {
-                loadingInfo.textContent = `Obteniendo estudio: ${fileId}`;
-                
-                const response = await fetch(`${API_BASE}/study/${fileId}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
-                studyData = await response.json();
-                console.log('[DICOM] Estudio cargado:', studyData);
-                
-                if (!studyData.studies || studyData.studies.length === 0) {
-                    throw new Error('No se encontraron estudios');
-                }
-                
-                const study = studyData.studies[0];
-                document.getElementById('patient-info').textContent = 
-                    `${study.PatientName || 'N/A'} | ID: ${study.PatientID || ''}`;
-                infoBar.style.display = 'flex';
-                
-                const container = document.getElementById('series-container');
-                container.innerHTML = '';
-                
-                let loaded = 0;
-                const total = study.series ? study.series.length : 0;
-                
-                for (const series of (study.series || [])) {
-                    const viewportDiv = document.createElement('div');
-                    viewportDiv.className = 'viewport';
-                    viewportDiv.innerHTML = `
-                        <div class="viewport-label">
-                            Serie ${series.SeriesNumber || ''} | ${series.Modality || ''}
-                        </div>
-                        <div class="viewport-element"></div>
-                    `;
-                    container.appendChild(viewportDiv);
-                    
-                    if (series.instances && series.instances.length > 0) {
-                        let imageUrl = series.instances[0].wadoUri || series.instances[0].wadoUrl;
-                        if (imageUrl && !imageUrl.startsWith('wadouri:')) {
-                            imageUrl = 'wadouri:' + imageUrl;
-                        }
-                        
-                        console.log('[Viewport] Cargando:', imageUrl);
-                        loadViewport(viewportDiv.querySelector('.viewport-element'), imageUrl, () => {
-                            loaded++;
-                            console.log(`[Viewport] Cargadas: ${loaded}/${total}`);
-                            if (loaded >= total) {
-                                setTimeout(() => loadingEl.classList.add('hidden'), 500);
-                            }
-                        });
-                    }
-                }
-                
-                if (total === 0) loadingEl.classList.add('hidden');
-                
-            } catch (err) {
-                console.error('[DICOM] Error:', err);
-                errorMsg.textContent = `Error: ${err.message}`;
-                errorMsg.style.display = 'block';
-                document.querySelector('.spinner').style.display = 'none';
-            }
-        }
-        
-        async function loadViewport(element, imageUrl, onComplete) {
-            try {
-                cornerstone.enable(element);
-                
-                const image = await cornerstone.loadAndCacheImage(imageUrl);
-                console.log('[Viewport] Imagen cargada:', image);
-                
-                cornerstone.displayImage(element, image);
-                
-                // Configurar herramientas
-                cornerstoneTools.external.cornerstone = cornerstone;
-                cornerstoneTools.external.Hammer = Hammer;
-                cornerstoneTools.init();
-                
-                cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
-                cornerstoneTools.addTool(cornerstoneTools.PanTool);
-                cornerstoneTools.addTool(cornerstoneTools.ZoomTool);
-                
-                cornerstoneTools.setToolActive('Wwwc', { mouseButton: 1 });
-                cornerstoneTools.setToolActive('Pan', { mouseButton: 2 });
-                cornerstoneTools.setToolActive('Zoom', { mouseButton: 1, shiftKey: true });
-                
-                viewports.push({ element });
-                if (onComplete) onComplete();
-                
-            } catch (err) {
-                console.error('[Viewport] Error:', err);
-                element.innerHTML += `<div style="color:#ff6b6b;padding:10px;font-size:12px;">${err.message}</div>`;
-                if (onComplete) onComplete();
-            }
-        }
-        
         if (fileId) {
-            loadStudy();
+            window.config = {
+                routerBasename: '/view',
+                showStudyList: false,
+                showLoadingIndicator: true,
+                disableConfirmationPrompts: true,
+                showPatientInfo: false,
+                activateViewportBeforeInteraction: false,
+                useSharedArrayBuffer: false,
+                extensions: [],
+                modes: [],
+                customizationService: {},
+                maxNumberOfWebWorkers: 3,
+                showWarningMessageForCrossOrigin: false,
+                defaultDataSourceName: 'dicomjson',
+                dataSources: [{
+                    namespace: '@ohif/extension-default.dataSourcesModule.dicomjson',
+                    sourceName: 'dicomjson',
+                    configuration: {
+                        friendlyName: 'DICOM JSON - Google Drive',
+                        name: 'dicomjson',
+                        url: `${API_BASE}/study/${fileId}`,
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                }],
+                httpErrorHandler: (error) => {
+                    console.warn('[HTTP Error]', error.status, error.message);
+                },
+                whiteLabeling: {
+                    createLogoComponentFn: function (React) {
+                        return React.createElement(
+                            "a",
+                            {
+                                target: "_self",
+                                rel: "noopener noreferrer",
+                                className: "pointer-events-none",
+                                href: "#",
+                            },
+                            React.createElement("img", {
+                                src: "./image/nubix.png",
+                                className: "w-8 h-8 object-contain",
+                                alt: "Logo",
+                            }),
+                        );
+                    },
+                },
+                hotkeys: [
+                    { commandName: "incrementActiveViewport", label: "Next Viewport", keys: ["right"] },
+                    { commandName: "decrementActiveViewport", label: "Previous Viewport", keys: ["left"] },
+                    { commandName: "rotateViewportCW", label: "Rotate Right", keys: ["r"] },
+                    { commandName: "rotateViewportCCW", label: "Rotate Left", keys: ["l"] },
+                    { commandName: "invertViewport", label: "Invert", keys: ["i"] },
+                    { commandName: "flipViewportHorizontal", label: "Flip Horizontally", keys: ["h"] },
+                    { commandName: "flipViewportVertical", label: "Flip Vertically", keys: ["v"] },
+                    { commandName: "scaleUpViewport", label: "Zoom In", keys: ["+"] },
+                    { commandName: "scaleDownViewport", label: "Zoom Out", keys: ["-"] },
+                    { commandName: "fitViewportToWindow", label: "Zoom to Fit", keys: ["="] },
+                    { commandName: "resetViewport", label: "Reset", keys: ["space"] },
+                    { commandName: "nextImage", label: "Next Image", keys: ["down"] },
+                    { commandName: "previousImage", label: "Previous Image", keys: ["up"] },
+                    { commandName: "windowLevel", label: "Window/Level", keys: ["w"] },
+                    { commandName: "zoom", label: "Zoom", keys: ["z"] },
+                    { commandName: "pan", label: "Pan", keys: ["p"] }
+                ]
+            };
+            
+            console.log('[OHIF] Config:', window.config);
+            console.log('[OHIF] Study URL:', `${API_BASE}/study/${fileId}`);
         } else {
-            loadingInfo.textContent = 'Error: No se especificó fileId';
-            document.querySelector('.spinner').style.display = 'none';
+            document.getElementById('loading-info').textContent = 'Error: No se especificó fileId';
         }
-        
-        window.addEventListener('resize', () => {
-            viewports.forEach(vp => cornerstone.resize(vp.element));
+    </script>
+    
+    <!-- OHIF Viewer Bundle local -->
+    <script src="./javascript/app.bundle.a7e524c0e2cef2b01e35.js"></script>
+    
+    <script>
+        // Ocultar loading cuando OHIF cargue
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+            }, 2000);
         });
     </script>
 </body>
