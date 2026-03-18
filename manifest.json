@@ -1,0 +1,16 @@
+{
+  "name": "NUBIX - Visor DICOM",
+  "short_name": "NUBIX",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#36404A",
+  "theme_color": "#36404A",
+  "description": "Visor de estudios DICOM desde Google Drive",
+  "icons": [
+    {
+      "src": "assets/images/favicon_1.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

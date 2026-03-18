@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>Visor DICOM - NUBIX</title>
+    <link rel="manifest" href="../manifest.json">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        #root {
+            height: 100%;
+            width: 100%;
+        }
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #252525;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 9999;
+        }
+        .loading.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <div id="loading" class="loading">
+        <div>
+            <h2>Cargando visor DICOM...</h2>
+            <p id="loading-info">Iniciando...</p>
+        </div>
+    </div>
+
+    <!-- OHIF Viewer desde CDN -->
+    <script src="https://unpkg.com/@ohif/viewer@4.12.2/dist/ohif-viewer.umd.js"></script>
+    
+    <script>
+        const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
+        
+        // Obtener fileId de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileId = urlParams.get('fileId');
+        
+        document.getElementById('loading-info').textContent = fileId 
+            ? `Cargando estudio: ${fileId}` 
+            : 'Esperando parámetro fileId...';
+        
+        if (fileId) {
+            // Configurar OHIF Viewer
+            window.config = {
+                routerBasename: '/view/',
+                showStudyList: false,
+                showLoadingIndicator: true,
+                disableConfirmationPrompts: true,
+                showPatientInfo: 'disabled',
+                activateViewportBeforeInteraction: false,
+                useSharedArrayBuffer: 'AUTO',
+                extensions: [],
+                modes: [],
+                customizationService: {},
+                maxNumberOfWebWorkers: 3,
+                showWarningMessageForCrossOrigin: false,
+                defaultDataSourceName: 'dicomjson',
+                dataSources: [
+                    {
+                        namespace: '@ohif/extension-default.dataSourcesModule.dicomjson',
+                        sourceName: 'dicomjson',
+                        configuration: {
+                            friendlyName: 'DICOM JSON - Google Drive',
+                            name: 'dicomjson',
+                            url: `${API_BASE}/study/${fileId}`,
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    }
+                ],
+                httpErrorHandler: (error) => {
+                    console.warn('[HTTP Error]', error.status, error.message);
+                    document.getElementById('loading-info').textContent = 
+                        `Error ${error.status}: ${error.message}`;
+                },
+                hotkeys: [
+                    { commandName: 'incrementActiveViewport', label: 'Next Viewport', keys: ['right'] },
+                    { commandName: 'decrementActiveViewport', label: 'Previous Viewport', keys: ['left'] },
+                    { commandName: 'rotateViewportCW', label: 'Rotate Right', keys: ['r'] },
+                    { commandName: 'rotateViewportCCW', label: 'Rotate Left', keys: ['l'] },
+                    { commandName: 'invertViewport', label: 'Invert', keys: ['i'] },
+                    { commandName: 'flipViewportHorizontal', label: 'Flip Horizontally', keys: ['h'] },
+                    { commandName: 'flipViewportVertical', label: 'Flip Vertically', keys: ['v'] },
+                    { commandName: 'scaleUpViewport', label: 'Zoom In', keys: ['+'] },
+                    { commandName: 'scaleDownViewport', label: 'Zoom Out', keys: ['-'] },
+                    { commandName: 'fitViewportToWindow', label: 'Zoom to Fit', keys: ['='] },
+                    { commandName: 'resetViewport', label: 'Reset', keys: ['space'] },
+                    { commandName: 'nextImage', label: 'Next Image', keys: ['down'] },
+                    { commandName: 'previousImage', label: 'Previous Image', keys: ['up'] },
+                    { commandName: 'windowLevel', label: 'Window/Level', keys: ['w'] },
+                    { commandName: 'zoom', label: 'Zoom', keys: ['z'] },
+                    { commandName: 'pan', label: 'Pan', keys: ['p'] },
+                    { commandName: 'length', label: 'Length Tool', keys: ['1'] },
+                    { commandName: 'angle', label: 'Angle Tool', keys: ['2'] },
+                    { commandName: 'stackScroll', label: 'Stack Scroll', keys: ['s'] }
+                ]
+            };
+            
+            console.log('[OHIF Config] Initializing viewer with study:', fileId);
+            console.log('[OHIF Config] API URL:', `${API_BASE}/study/${fileId}`);
+            
+            // Ocultar loading cuando OHIF cargue
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    document.getElementById('loading').classList.add('hidden');
+                }, 2000);
+            });
+        } else {
+            document.getElementById('loading-info').textContent = 
+                'Error: No se especificó fileId en la URL';
+        }
+    </script>
+</body>
+</html>

@@ -14,7 +14,7 @@ window.driveUtils = {
     return res.json();
   },
   generateOHIFUrl(fileId) {
-    return `https://viewer.ohif.org/viewer?url=${encodeURIComponent(`${API_BASE}/study/${fileId}`)}`;
+    return `./view/index.html?fileId=${fileId}`;
   },
 
 

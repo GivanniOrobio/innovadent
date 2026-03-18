@@ -107,7 +107,9 @@
     }
 
     window.compartirLink = function(id, name) {
-      const link = `${window.location.origin}${window.location.pathname.replace('index.html', 'viewer.html')}?fileId=${id}`;
+      const currentPath = window.location.pathname;
+      const viewerPath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1) + 'viewer.html';
+      const link = `${window.location.origin}${viewerPath}?fileId=${id}`;
       if (navigator.clipboard) {
         navigator.clipboard.writeText(link).then(() => {
           alert(`Link copiado al portapapeles:\n${link}`);

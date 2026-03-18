@@ -1,16 +1,13 @@
 <html translate="no">
 
 <head>
-    <title>Acceda a su estudio | NUBIX</title>
+    <title>Visor DICOM | NUBIX</title>
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
     <meta http-equiv="Content-Language" content="es-mx">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <meta name="author" content="Theia SAPI de CV">
     <link rel="shortcut icon" href="assets/images/favicon_1.ico">
-    <meta name="description" content="De clic aquí">
-    <meta property="og:image" content="https://static.nubix.cloud/og_image.jpg">
-    <meta property="og:site_name" content="nubix.cloud">
-    <meta property="og:description" content="De clic aquí">
+    <meta name="description" content="Visor de estudios DICOM">
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" href="assets/images/favicon_1.ico" type="image/x-icon">
     <meta name="theme-color" content="#36404A" media="(prefers-color-scheme: light)">
@@ -31,6 +28,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            background-color: #f5f5f5;
         }
 
         .resizer {
@@ -55,6 +53,33 @@
 
         body {
             margin: 0;
+        }
+
+        .study-info {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+        }
+
+        .study-info h2 {
+            color: #36404A;
+            border-bottom: 2px solid #36404A;
+            padding-bottom: 10px;
+        }
+
+        .study-info .info-row {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .study-info .label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .study-info .value {
+            color: #333;
         }
 
         .report-overlay {
@@ -88,41 +113,60 @@
         .report-overlay button:hover {
             background-color: #e0e0e0;
         }
+
+        #back-btn {
+            background-color: #36404A;
+            color: white;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <div class="container__left left"><iframe id="report" name="report" frameborder="0"></iframe>
-            <div class="report-overlay"><button id="close-btn" type="button">×</button><button id="fullscreen-btn"
-                    type="button">⛶</button></div>
+        <div class="container__left left">
+            <div id="study-info" class="study-info">
+                <h2>Información del Estudio</h2>
+                <div id="info-content">Cargando información...</div>
+            </div>
+            <div class="report-overlay">
+                <button id="back-btn" type="button" onclick="window.location.href='index.html'">←</button>
+                <button id="close-btn" type="button">×</button>
+                <button id="fullscreen-btn" type="button">⛶</button>
+            </div>
         </div>
         <div class="resizer" id="dragMe"></div>
         <div class="container__right right"><iframe id="viewer" name="viewer" frameborder="0"></iframe></div>
     </div>
     <script src="javascripts/split.js"></script>
-    <script src="javascripts/dist/split-reporte.min.js"></script>
     <script>
+        const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
+        
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
             const fileId = urlParams.get('fileId');
-            const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
             
-            // URLs por defecto (cuando no hay fileId)
-            const defaultReportUrl = 'https://app.nubix.cloud/reporte?id=682168&organization=auth0%7C683000ca8c1980731dc52d21&access_code=8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx';
-            const defaultViewerUrl = 'https://ver.nubix.cloud/viewer?url=https%3A%2F%2Fapp.nubix.cloud%2Fapi%2Fv1%2Forganization%2Fstudy%2F682168%2Ffiles%2Fohif%3Forganization%3Dauth0%7C683000ca8c1980731dc52d21%26access_code%3D8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx%26pin%3Dnull';
+            const defaultViewerUrl = 'about:blank';
             
             if (fileId) {
-                // Cargar reporte con el fileId seleccionado
-                const reportUrl = `https://app.nubix.cloud/reporte?id=${fileId}&organization=auth0%7C683000ca8c1980731dc52d21&access_code=8AHGnsM6busWMRPmaL03OhXI6kfX_Bxw1jUC7bwRUx`;
-                document.getElementById('report').src = reportUrl;
+                // Cargar información del estudio desde el backend
+                fetch(`${API_BASE}/study/${fileId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log('[viewer.html] Estudio cargado:', data);
+                        displayStudyInfo(data);
+                    })
+                    .catch(err => {
+                        console.error('[viewer.html] Error cargando estudio:', err);
+                        document.getElementById('info-content').innerHTML = 
+                            '<p style="color:red;">Error cargando información del estudio</p>';
+                    });
                 
-                // Cargar viewer con el estudio desde el backend
-                const viewerUrl = `https://ver.nubix.cloud/viewer?url=${encodeURIComponent(`${API_BASE}/study/${fileId}`)}`;
+                // Cargar viewer OHIF local con el estudio desde el backend
+                const viewerUrl = `view/index.html?fileId=${fileId}`;
                 document.getElementById('viewer').src = viewerUrl;
                 
                 console.log(`[viewer.html] Cargando estudio: ${fileId}`);
-                console.log(`[viewer.html] Report URL: ${reportUrl}`);
                 console.log(`[viewer.html] Viewer URL: ${viewerUrl}`);
                 
                 // Generar manifest.json dinámico
@@ -143,7 +187,6 @@
                     ]
                 };
                 
-                // Actualizar el link del manifest
                 const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
                 const manifestUrl = URL.createObjectURL(manifestBlob);
                 const manifestLink = document.querySelector('link[rel="manifest"]');
@@ -151,10 +194,75 @@
                     manifestLink.href = manifestUrl;
                 }
             } else {
-                document.getElementById('report').src = defaultReportUrl;
+                document.getElementById('info-content').innerHTML = '<p>No se especificó un estudio</p>';
                 document.getElementById('viewer').src = defaultViewerUrl;
             }
         })();
+        
+        function displayStudyInfo(data) {
+            const study = data.studies && data.studies[0];
+            if (!study) {
+                document.getElementById('info-content').innerHTML = '<p>No hay información disponible</p>';
+                return;
+            }
+            
+            const seriesCount = study.series ? study.series.length : 0;
+            let instancesCount = 0;
+            if (study.series) {
+                study.series.forEach(s => {
+                    instancesCount += s.instances ? s.instances.length : 0;
+                });
+            }
+            
+            const html = `
+                <div class="info-row">
+                    <span class="label">Paciente:</span>
+                    <span class="value">${study.PatientName || 'N/A'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">ID Paciente:</span>
+                    <span class="value">${study.PatientID || 'N/A'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Sexo:</span>
+                    <span class="value">${study.PatientSex || 'N/A'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Fecha:</span>
+                    <span class="value">${formatDate(study.StudyDate) || 'N/A'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Modalidad:</span>
+                    <span class="value">${study.ModalitiesInStudy || 'N/A'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Descripción:</span>
+                    <span class="value">${study.StudyDescription || 'N/A'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Series:</span>
+                    <span class="value">${seriesCount}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Imágenes:</span>
+                    <span class="value">${instancesCount}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">UID:</span>
+                    <span class="value" style="font-size:10px;word-break:break-all;">${study.StudyInstanceUID || 'N/A'}</span>
+                </div>
+            `;
+            
+            document.getElementById('info-content').innerHTML = html;
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr.length !== 8) return dateStr;
+            const year = dateStr.substring(0, 4);
+            const month = dateStr.substring(4, 6);
+            const day = dateStr.substring(6, 8);
+            return `${day}/${month}/${year}`;
+        }
     </script>
 </body>
 
