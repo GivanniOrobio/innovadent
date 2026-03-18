@@ -7,7 +7,7 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="icon" href="./image/nubix.png" type="image/png">
     
-    <!-- Cornerstone.js -->
+    <!-- Cornerstone.js - Scripts base -->
     <script src="https://unpkg.com/hammerjs@2.0.8/hammer.js"></script>
     <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
     <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
@@ -149,68 +149,85 @@
         let studyData = null;
         let viewports = [];
         
-        // Loader personalizado para DICOM desde HTTPS
-        function createImageLoader() {
-            cornerstone.registerImageLoader('wadouri', loadImage);
-            cornerstone.registerImageLoader('wadouri', loadImage);
-        }
-        
-        async function loadImage(imageId) {
+        // Loader personalizado para DICOM - usa fetch directo
+        cornerstone.registerImageLoader('wadouri', async (imageId) => {
             const url = imageId.replace('wadouri:', '');
-            console.log('[Loader] Cargando DICOM:', url);
+            console.log('[CustomLoader] Cargando:', url);
             
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/dicom',
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const arrayBuffer = await response.arrayBuffer();
-                const byteArray = new Uint8Array(arrayBuffer);
-                
-                console.log('[Loader] DICOM cargado:', byteArray.length, 'bytes');
-                
-                // Crear imagen cornerstone
-                const image = cornerstoneWADOImageLoader.wadouri.loadImage(imageId, {
-                    byteArray: byteArray,
-                    url: url
-                }).promise;
-                
-                return image;
-            } catch (err) {
-                console.error('[Loader] Error:', err);
-                throw err;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const arrayBuffer = await response.arrayBuffer();
+            const byteArray = new Uint8Array(arrayBuffer);
+            
+            // Parsear DICOM
+            const dataSet = dicomParser.parseDicom(byteArray);
+            
+            // Crear imagen para cornerstone
+            const width = dataSet.uint16('x00280011');  // Columns
+            const height = dataSet.uint16('x00280010'); // Rows
+            const pixelData = dataSet.elements.x7fe00010;
+            
+            if (!pixelData) {
+                throw new Error('No pixel data found');
             }
-        }
+            
+            const pixelDataValue = dataSet.byteArray.slice(
+                pixelData.dataOffset, 
+                pixelData.dataOffset + pixelData.length
+            );
+            
+            // Crear imagen en escala de grises
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.createImageData(width, height);
+            
+            // Convertir pixel data a RGB
+            for (let i = 0; i < width * height; i++) {
+                const pixelValue = pixelDataValue[i * 2] + (pixelDataValue[i * 2 + 1] << 8);
+                const normalized = Math.min(255, (pixelValue / 4096) * 255);
+                imageData.data[i * 4] = normalized;
+                imageData.data[i * 4 + 1] = normalized;
+                imageData.data[i * 4 + 2] = normalized;
+                imageData.data[i * 4 + 3] = 255;
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            
+            // Crear objeto imagen cornerstone
+            return {
+                imageId,
+                minPixelValue: 0,
+                maxPixelValue: 255,
+                slope: 1,
+                intercept: 0,
+                windowCenter: 128,
+                windowWidth: 255,
+                render: () => {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => resolve(img);
+                        img.src = canvas.toDataURL();
+                    });
+                },
+                getPixelData: () => pixelDataValue,
+                rows: height,
+                columns: width,
+                height,
+                width,
+                color: false,
+                columnPixelSpacing: 1,
+                rowPixelSpacing: 1,
+                invert: false,
+                sizeInBytes: byteArray.length
+            };
+        });
         
         async function loadStudy() {
             try {
                 loadingInfo.textContent = `Obteniendo estudio: ${fileId}`;
-                
-                // Cargar wado-image-loader dinámicamente
-                await loadScript('https://unpkg.com/cornerstone-wado-image-loader@3.4.0/dist/cornerstoneWADOImageLoader.bundle.min.js');
-                
-                // Configurar loader
-                cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
-                cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
-                
-                cornerstoneWADOImageLoader.configure({
-                    useWebWorkers: false,
-                    httpOptions: {
-                        headers: {
-                            'Accept': 'application/dicom',
-                        }
-                    }
-                });
-                
-                // Registrar loader personalizado
-                cornerstone.registerImageLoader('wadouri', wadoImageLoader);
                 
                 const response = await fetch(`${API_BASE}/study/${fileId}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -250,8 +267,10 @@
                             imageUrl = 'wadouri:' + imageUrl;
                         }
                         
+                        console.log('[Viewport] Cargando:', imageUrl);
                         loadViewport(viewportDiv.querySelector('.viewport-element'), imageUrl, () => {
                             loaded++;
+                            console.log(`[Viewport] Cargadas: ${loaded}/${total}`);
                             if (loaded >= total) {
                                 setTimeout(() => loadingEl.classList.add('hidden'), 500);
                             }
@@ -269,21 +288,16 @@
             }
         }
         
-        function wadoImageLoader(imageId) {
-            const url = imageId.replace('wadouri:', '');
-            return cornerstoneWADOImageLoader.loadImage(imageId);
-        }
-        
         async function loadViewport(element, imageUrl, onComplete) {
             try {
                 cornerstone.enable(element);
-                console.log('[Viewport] Cargando:', imageUrl);
                 
                 const image = await cornerstone.loadAndCacheImage(imageUrl);
                 console.log('[Viewport] Imagen cargada:', image);
                 
                 cornerstone.displayImage(element, image);
                 
+                // Configurar herramientas
                 cornerstoneTools.external.cornerstone = cornerstone;
                 cornerstoneTools.external.Hammer = Hammer;
                 cornerstoneTools.init();
@@ -304,20 +318,6 @@
                 element.innerHTML += `<div style="color:#ff6b6b;padding:10px;font-size:12px;">${err.message}</div>`;
                 if (onComplete) onComplete();
             }
-        }
-        
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                if (document.querySelector(`script[src="${src}"]`)) {
-                    resolve();
-                    return;
-                }
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = resolve;
-                script.onerror = () => reject(new Error(`Failed to load ${src}`));
-                document.head.appendChild(script);
-            });
         }
         
         if (fileId) {
