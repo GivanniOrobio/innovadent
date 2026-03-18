@@ -1,0 +1,26 @@
+# Netlify Configuration for OHIF Viewer
+
+[build]
+  publish = "."
+  command = "echo 'No build required - static site'"
+
+# Redirect all /view/* requests to /view/index.html (SPA routing)
+[[redirects]]
+  from = "/view/*"
+  to = "/view/index.html"
+  status = 200
+
+# Serve bundle chunks from root when requested from /view/
+# This handles webpack's dynamic imports
+[[redirects]]
+  from = "/:filename"
+  to = "/:filename"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
