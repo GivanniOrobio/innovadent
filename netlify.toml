@@ -1,26 +1,48 @@
-# Netlify Configuration for OHIF Viewer
+# Netlify Configuration
 
 [build]
   publish = "."
   command = "echo 'No build required - static site'"
 
-# Redirect all /view/* requests to /view/index.html (SPA routing)
+# Functions directory
+[functions]
+  directory = "netlify/functions"
+
+# Redirect all SPA routes
+[[redirects]]
+  from = "/viewer"
+  to = "/viewer.html"
+  status = 200
+
 [[redirects]]
   from = "/view/*"
   to = "/view/index.html"
   status = 200
 
-# Serve bundle chunks from root when requested from /view/
-# This handles webpack's dynamic imports
+# Proxy endpoint for DICOM images (avoid CORS)
 [[redirects]]
-  from = "/:filename"
-  to = "/:filename"
+  from = "/api/proxy/dicom"
+  to = "/.netlify/functions/dicom-proxy"
   status = 200
+  force = true
 
-# Security headers
+# CORS Headers for all routes
 [[headers]]
   for = "/*"
   [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Specific headers for API routes
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
