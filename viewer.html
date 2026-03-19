@@ -738,7 +738,7 @@
     <script src="javascripts/split.js"></script>
     <script>
         const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
-        const PROXY_BASE = '/.netlify/functions/dicom-proxy';  // Proxy local para evitar CORS
+        const PROXY_BASE = '/.netlify/functions/dicom-proxy';
         const urlParams = new URLSearchParams(window.location.search);
         const fileId = urlParams.get('fileId');
         
@@ -754,7 +754,7 @@
         let startPoint = null;
         let currentPoint = null;
         let pixelSpacing = 1; // mm por pixel
-        let useProxy = false;  // Usar proxy si hay CORS
+        let useProxy = false;  // Usar proxy solo si hay CORS
         
         const canvas = document.getElementById('dicom-canvas');
         const ctx = canvas.getContext('2d');
@@ -1186,13 +1186,8 @@
             try {
                 document.getElementById('loading-info').textContent = `Obteniendo estudio: ${fileId}`;
                 
-                // Usar proxy para el estudio también si es necesario
-                let studyUrl = `${API_BASE}/study/${fileId}`;
-                if (!window.location.origin.includes('netlify.app')) {
-                    studyUrl = `${PROXY_BASE}?url=${encodeURIComponent(studyUrl)}`;
-                }
-                
-                const response = await fetch(studyUrl);
+                // Cargar directo desde el backend (sin proxy por defecto)
+                const response = await fetch(`${API_BASE}/study/${fileId}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const studyData = await response.json();
