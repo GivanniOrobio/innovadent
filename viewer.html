@@ -710,11 +710,6 @@
                     </button>
                     <button onclick="resetView()">↺ Reset</button>
                 </div>
-                <div class="toolbar-group" style="margin-left:auto;">
-                    <label style="font-size:11px;color:#aaa;" id="proxy-indicator" title="Usando proxy para evitar CORS">
-                        🔄 Proxy: OFF
-                    </label>
-                </div>
             </div>
             
             <div class="canvas-area" id="canvas-area">
@@ -1241,16 +1236,11 @@
         
         async function loadImage(index) {
             try {
-                let url = dicomImages[index];
+                const url = dicomImages[index];
                 document.getElementById('file-name').textContent = `Imagen DICOM`;
                 document.getElementById('image-count').textContent = `${index + 1} / ${dicomImages.length}`;
                 
-                // Usar proxy si está activado o si estamos en dominio diferente
-                if (useProxy || !window.location.origin.includes('netlify.app')) {
-                    url = `${PROXY_BASE}?url=${encodeURIComponent(url)}`;
-                }
-                
-                // Fetch con mode CORS
+                // Cargar directo desde el backend
                 const response = await fetch(url, {
                     method: 'GET',
                     mode: 'cors',
@@ -1261,7 +1251,7 @@
                 
                 if (!response.ok) {
                     if (response.status === 0) {
-                        throw new Error('Error CORS: El servidor no permite acceso desde este dominio.');
+                        throw new Error('Error CORS');
                     }
                     throw new Error(`HTTP ${response.status}`);
                 }
@@ -1293,35 +1283,9 @@
             } catch (err) {
                 console.error('[Image] Error:', err);
                 
-                // Si es error CORS y no estamos usando proxy, intentar con proxy
-                if ((err.message.includes('CORS') || err.message.includes('Failed to fetch')) && !useProxy) {
-                    console.log('[CORS] Activando proxy y reintentando...');
-                    useProxy = true;
-                    document.getElementById('proxy-indicator').textContent = '🔄 Proxy: ON';
-                    document.getElementById('proxy-indicator').style.color = '#feca57';
-                    await loadImage(index);  // Reintentar con proxy
-                    return;
-                }
-                
-                // Mostrar error si persiste
-                if (err.message.includes('CORS') || err.message.includes('Failed to fetch')) {
-                    document.querySelector('.canvas-area').innerHTML = `
-                        <div class="error-msg">
-                            <h2>⚠️ Error de CORS</h2>
-                            <p>El servidor de imágenes no permite acceso desde este dominio.</p>
-                            <p style="margin-top:10px;font-size:12px;">
-                                <strong>Solución:</strong> El proxy está activado pero falló.<br>
-                                Asegúrate de que el backend tenga CORS habilitado.
-                            </p>
-                            <button onclick="location.reload()" style="margin-top:15px;padding:10px 20px;background:#5fbcaa;color:white;border:none;border-radius:4px;cursor:pointer;">
-                                🔄 Recargar
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    document.querySelector('.canvas-area').innerHTML += 
-                        `<div class="error-msg">Error cargando imagen: ${err.message}</div>`;
-                }
+                // Mostrar error simple
+                document.querySelector('.canvas-area').innerHTML += 
+                    `<div class="error-msg">Error: ${err.message}</div>`;
             }
         }
         
