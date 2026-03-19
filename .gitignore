@@ -1,1 +1,4 @@
 ./proyecto-pasado
+
+# Local Netlify folder
+.netlify

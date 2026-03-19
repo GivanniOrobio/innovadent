@@ -1,269 +1,1350 @@
-<html translate="no">
-
+<!DOCTYPE html>
+<html lang="es">
 <head>
-    <title>Visor DICOM | NUBIX</title>
-    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
-    <meta http-equiv="Content-Language" content="es-mx">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <meta name="author" content="Theia SAPI de CV">
-    <link rel="shortcut icon" href="./view/image/nubix.png" type="image/png">
-    <meta name="description" content="Visor de estudios DICOM">
-    <meta name="robots" content="noindex, nofollow">
-    <link rel="icon" href="./view/image/nubix.png" type="image/png">
-    <meta name="theme-color" content="#36404A" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#36404A" media="(prefers-color-scheme: dark)">
-    <link rel="manifest" href="manifest.json">
-    <link href="stylesheets/loading_bar.css" rel="stylesheet" type="text/css">
-    <script src="javascripts/translate.js?v=4.8.0+0"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor DICOM - NUBIX</title>
+    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" href="./image/nubix.png" type="image/png">
+    
+    <!-- dicom-parser para leer DICOMs -->
+    <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
+    
     <style>
+        :root {
+            --sidebar-width: 320px;
+            --sidebar-bg: #f5f5f5;
+            --toolbar-bg: #1a1a1a;
+            --nav-bg: #1a1a1a;
+            --primary-color: #5fbcaa;
+            --primary-hover: #4a9a8a;
+            --text-dark: #333;
+            --text-light: #fff;
+            --border-color: #ddd;
+            --danger-color: #ff6b6b;
+            --warning-color: #feca57;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body, html {
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
         .container {
             display: flex;
-            height: 100vh;
+            height: 100%;
             width: 100%;
         }
-
+        
+        /* Sidebar */
         .container__left {
-            width: 33%;
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            overflow-y: auto;
+            position: relative;
+            min-width: 280px;
+            transition: transform 0.3s ease, min-width 0.3s ease;
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container__left.collapsed {
+            transform: translateX(-100%);
+            min-width: 0;
+            width: 0;
+            position: absolute;
+        }
+        
+        .sidebar-header {
+            padding: 16px;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .sidebar-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .toggle-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            background-color: #f5f5f5;
+            transition: background 0.2s;
         }
-
+        
+        .toggle-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .study-info {
+            padding: 16px;
+            flex: 1;
+        }
+        
+        .info-row {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            gap: 12px;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-row .label {
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+        }
+        
+        .info-row .value {
+            color: var(--text-dark);
+            text-align: right;
+            word-break: break-word;
+        }
+        
+        /* Measurements panel */
+        .measurements-panel {
+            border-top: 1px solid var(--border-color);
+            padding: 16px;
+            background: #fff;
+        }
+        
+        .measurements-panel h3 {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .measurements-list {
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        .measurement-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .measurement-item:last-child {
+            border-bottom: none;
+        }
+        
+        .measurement-value {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .measurement-delete {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .measurement-delete:hover {
+            opacity: 0.8;
+        }
+        
+        .no-measurements {
+            color: #999;
+            font-size: 12px;
+            font-style: italic;
+            text-align: center;
+            padding: 10px 0;
+        }
+        
+        /* Resizer */
         .resizer {
             background-color: #cbd5e0;
             cursor: ew-resize;
             height: 100%;
-            width: 3px;
+            width: 4px;
+            transition: background 0.2s;
+            z-index: 10;
         }
-
+        
+        .resizer:hover {
+            background-color: var(--primary-color);
+        }
+        
+        /* Main viewer area */
         .container__right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #000;
+            min-width: 0;
+        }
+        
+        /* Toolbar */
+        .toolbar {
+            background: var(--toolbar-bg);
+            padding: 12px 16px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #333;
+        }
+        
+        .toolbar-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding-right: 16px;
+            border-right: 1px solid #333;
+        }
+        
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+        
+        .toolbar label {
+            color: var(--text-light);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        
+        .toolbar input[type="range"] {
+            width: 100px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+        
+        .toolbar .control-val {
+            min-width: 40px;
+            text-align: right;
+            font-size: 11px;
+            color: #aaa;
+        }
+        
+        .toolbar button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .toolbar button:hover {
+            background: var(--primary-hover);
+        }
+        
+        .toolbar button.active {
+            background: var(--warning-color);
+            color: #000;
+        }
+        
+        .toolbar button.danger {
+            background: var(--danger-color);
+        }
+        
+        .toolbar button.danger:hover {
+            background: #ff5252;
+        }
+        
+        /* Canvas area */
+        .canvas-area {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            position: relative;
+            background: #000;
         }
-
-        iframe {
-            min-height: 100%;
-            min-width: 100%;
-            background-color: #252525;
+        
+        .canvas-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
         }
-
-        body {
-            margin: 0;
+        
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            transition: transform 0.1s;
+            cursor: crosshair;
         }
-
-        .study-info {
-            padding: 20px;
-            font-family: Arial, sans-serif;
-            max-width: 400px;
+        
+        canvas.default-cursor {
+            cursor: default;
         }
-
-        .study-info h2 {
-            color: #36404A;
-            border-bottom: 2px solid #36404A;
-            padding-bottom: 10px;
+        
+        canvas.grabbing {
+            cursor: grabbing;
         }
-
-        .study-info .info-row {
-            margin: 10px 0;
+        
+        /* Overlay SVG for measurements */
+        .measurements-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: visible;
+        }
+        
+        .measurement-line {
+            stroke: #00ff00;
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        .measurement-point {
+            fill: #00ff00;
+            stroke: #000;
+            stroke-width: 1;
+        }
+        
+        .measurement-text {
+            fill: #00ff00;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px #000;
+        }
+        
+        /* Navigation */
+        .nav {
+            background: var(--nav-bg);
+            padding: 12px 16px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            color: var(--text-light);
+            border-top: 1px solid #333;
+            gap: 16px;
         }
-
-        .study-info .label {
-            font-weight: bold;
-            color: #555;
+        
+        .nav button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
         }
-
-        .study-info .value {
-            color: #333;
+        
+        .nav button:hover:not(:disabled) {
+            background: var(--primary-hover);
         }
-
-        .report-overlay {
-            position: absolute;
-            top: 50%;
-            right: -40px;
-            transform: translateY(-50%);
+        
+        .nav button:disabled {
+            background: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .nav-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+        }
+        
+        .nav-info strong {
+            color: var(--primary-color);
+        }
+        
+        .image-count {
+            color: #aaa;
+            font-size: 12px;
+        }
+        
+        /* Loading overlay */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-        }
-
-        .report-overlay button {
-            width: 32px;
-            height: 32px;
-            border: none;
-            background-color: #f0f0f0;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 16px;
-            line-height: 32px;
-            text-align: center;
-            padding: 0;
-        }
-
-        #close-btn {
-            background-color: red;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(37, 37, 37, 0.98);
             color: white;
+            z-index: 9999;
         }
-
-        .report-overlay button:hover {
-            background-color: #e0e0e0;
+        
+        .loading.hidden {
+            display: none;
         }
-
-        #back-btn {
-            background-color: #36404A;
-            color: white;
+        
+        .loading h2 {
             margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Error message */
+        .error-msg {
+            color: #ff6b6b;
+            padding: 20px;
+            text-align: center;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 8px;
+            margin: 20px;
+        }
+        
+        /* Back button */
+        .back-btn {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(54, 64, 74, 0.9);
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            z-index: 100;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .back-btn:hover {
+            background: rgba(54, 64, 74, 1);
+        }
+        
+        /* Toggle sidebar button (visible when sidebar is hidden) */
+        .show-sidebar-btn {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            z-index: 100;
+            font-size: 18px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .show-sidebar-btn.visible {
+            display: flex;
+        }
+        
+        .show-sidebar-btn:hover {
+            background: var(--primary-hover);
+        }
+        
+        /* Fullscreen button */
+        .fullscreen-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(54, 64, 74, 0.9);
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            z-index: 100;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        
+        .fullscreen-btn:hover {
+            background: rgba(54, 64, 74, 1);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container__left {
+                position: absolute;
+                z-index: 100;
+                height: 100%;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            }
+            
+            .container__left.collapsed {
+                transform: translateX(-100%);
+            }
+            
+            .resizer {
+                display: none;
+            }
+            
+            .toolbar {
+                gap: 12px;
+                padding: 10px 12px;
+            }
+            
+            .toolbar-group {
+                border-right: none;
+                padding-right: 0;
+            }
+            
+            .toolbar label {
+                font-size: 11px;
+            }
+            
+            .toolbar input[type="range"] {
+                width: 70px;
+            }
+            
+            .nav {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .nav button {
+                flex: 1;
+                min-width: 100px;
+            }
+            
+            .nav-info {
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toolbar-group {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .toolbar label {
+                justify-content: space-between;
+            }
+            
+            .toolbar input[type="range"] {
+                width: 120px;
+            }
+        }
+        
+        /* Empty state */
+        .empty-state {
+            color: #666;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            margin-bottom: 4px;
+        }
+        
+        .tooltip:hover::after {
+            opacity: 1;
         }
     </style>
 </head>
-
 <body>
-    <div class="container">
-        <div class="container__left left">
-            <div id="study-info" class="study-info">
-                <h2>Información del Estudio</h2>
-                <div id="info-content">Cargando información...</div>
-            </div>
-            <div class="report-overlay">
-                <button id="back-btn" type="button" onclick="window.location.href='index.html'">←</button>
-                <button id="close-btn" type="button">×</button>
-                <button id="fullscreen-btn" type="button">⛶</button>
-            </div>
-        </div>
-        <div class="resizer" id="dragMe"></div>
-        <div class="container__right right"><iframe id="viewer" name="viewer" frameborder="0"></iframe></div>
+    <div id="loading" class="loading">
+        <h2>Cargando estudio DICOM...</h2>
+        <p id="loading-info">Obteniendo imágenes...</p>
+        <div class="spinner"></div>
     </div>
+
+    <button class="show-sidebar-btn" id="show-sidebar-btn" onclick="toggleSidebar()">☰</button>
+    <button class="fullscreen-btn" id="fullscreen-btn" onclick="toggleFullscreen()" title="Pantalla completa">⛶</button>
+
+    <div class="container">
+        <aside class="container__left" id="sidebar">
+            <div class="sidebar-header">
+                <h2>📋 Información</h2>
+                <button class="toggle-btn" onclick="toggleSidebar()" title="Ocultar panel">✕</button>
+            </div>
+            <div class="study-info" id="info-content">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📷</div>
+                    <p>Cargando información del estudio...</p>
+                </div>
+            </div>
+            
+            <!-- Panel de mediciones -->
+            <div class="measurements-panel">
+                <h3>📏 Mediciones</h3>
+                <div class="measurements-list" id="measurements-list">
+                    <div class="no-measurements">Sin mediciones</div>
+                </div>
+                <button class="danger" onclick="clearAllMeasurements()" style="width:100%;margin-top:10px;">
+                    🗑️ Borrar todas
+                </button>
+            </div>
+        </aside>
+        
+        <div class="resizer" id="dragMe"></div>
+        
+        <main class="container__right">
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                <span>←</span> Volver
+            </button>
+            
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <label>
+                        <span>☀ Brillo</span>
+                        <input type="range" id="brightness" min="50" max="200" value="100">
+                        <span class="control-val" id="brightness-val">100%</span>
+                    </label>
+                    <label>
+                        <span>◑ Contraste</span>
+                        <input type="range" id="contrast" min="50" max="300" value="100">
+                        <span class="control-val" id="contrast-val">100%</span>
+                    </label>
+                    <label>
+                        <span>🔍 Zoom</span>
+                        <input type="range" id="zoom" min="25" max="400" step="25" value="100">
+                        <span class="control-val" id="zoom-val">100%</span>
+                    </label>
+                </div>
+                <div class="toolbar-group">
+                    <button class="tooltip" id="measure-btn" onclick="toggleMeasureMode()" data-tooltip="Click y arrastra para medir">
+                        📏 Medir
+                    </button>
+                    <button onclick="resetView()">↺ Reset</button>
+                </div>
+            </div>
+            
+            <div class="canvas-area" id="canvas-area">
+                <div class="canvas-wrapper" id="canvas-wrapper">
+                    <canvas id="dicom-canvas"></canvas>
+                    <svg class="measurements-overlay" id="measurements-overlay"></svg>
+                </div>
+            </div>
+            
+            <div class="nav">
+                <button id="prev-btn" onclick="prevImage()">← Anterior</button>
+                <div class="nav-info">
+                    <strong id="file-name">-</strong>
+                    <span class="image-count" id="image-count">0 / 0</span>
+                </div>
+                <button id="next-btn" onclick="nextImage()">Siguiente →</button>
+            </div>
+        </main>
+    </div>
+
     <script src="javascripts/split.js"></script>
     <script>
         const API_BASE = 'https://dcom-view-server.onrender.com/api/drive';
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileId = urlParams.get('fileId');
         
-        (function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const fileId = urlParams.get('fileId');
-            
-            const defaultViewerUrl = 'about:blank';
-            
-            if (fileId) {
-                // Cargar información del estudio desde el backend
-                fetch(`${API_BASE}/study/${fileId}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        console.log('[viewer.html] Estudio cargado:', data);
-                        displayStudyInfo(data);
-                    })
-                    .catch(err => {
-                        console.error('[viewer.html] Error cargando estudio:', err);
-                        document.getElementById('info-content').innerHTML = 
-                            '<p style="color:red;">Error cargando información del estudio</p>';
-                    });
-                
-                // Cargar viewer OHIF local con el estudio desde el backend
-                const viewerUrl = `view/index.html?fileId=${fileId}`;
-                document.getElementById('viewer').src = viewerUrl;
-                
-                console.log(`[viewer.html] Cargando estudio: ${fileId}`);
-                console.log(`[viewer.html] Viewer URL: ${viewerUrl}`);
-                
-                // Generar manifest.json dinámico
-                const manifest = {
-                    name: `Estudio ${fileId}`,
-                    short_name: fileId,
-                    start_url: `./viewer.html?fileId=${fileId}`,
-                    display: 'standalone',
-                    background_color: '#36404A',
-                    description: `Estudio DICOM ${fileId}`,
-                    icons: [
-                        { src: './view/image/nubix.png', sizes: '48x48', type: 'image/png' },
-                        { src: './view/image/nubix.png', sizes: '72x72', type: 'image/png' },
-                        { src: './view/image/nubix.png', sizes: '96x96', type: 'image/png' },
-                        { src: './view/image/nubix.png', sizes: '144x144', type: 'image/png' },
-                        { src: './view/image/nubix.png', sizes: '168x168', type: 'image/png' },
-                        { src: './view/image/nubix.png', sizes: '192x192', type: 'image/png' }
-                    ]
-                };
-                
-                const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-                const manifestUrl = URL.createObjectURL(manifestBlob);
-                const manifestLink = document.querySelector('link[rel="manifest"]');
-                if (manifestLink) {
-                    manifestLink.href = manifestUrl;
-                }
+        let dicomImages = [];
+        let currentIndex = 0;
+        let brightness = 100;
+        let contrast = 100;
+        let zoom = 1;
+        let sidebarOpen = true;
+        let measureMode = false;
+        let measurements = [];
+        let isDrawing = false;
+        let startPoint = null;
+        let currentPoint = null;
+        let pixelSpacing = 1; // mm por pixel
+        
+        const canvas = document.getElementById('dicom-canvas');
+        const ctx = canvas.getContext('2d');
+        const sidebar = document.getElementById('sidebar');
+        const showSidebarBtn = document.getElementById('show-sidebar-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const canvasArea = document.getElementById('canvas-area');
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+        const measureBtn = document.getElementById('measure-btn');
+        const measurementsOverlay = document.getElementById('measurements-overlay');
+        const measurementsList = document.getElementById('measurements-list');
+        
+        // Controles
+        document.getElementById('brightness').addEventListener('input', (e) => {
+            brightness = Number(e.target.value);
+            document.getElementById('brightness-val').textContent = brightness + '%';
+            applyFilters();
+        });
+        
+        document.getElementById('contrast').addEventListener('input', (e) => {
+            contrast = Number(e.target.value);
+            document.getElementById('contrast-val').textContent = contrast + '%';
+            applyFilters();
+        });
+        
+        document.getElementById('zoom').addEventListener('input', (e) => {
+            zoom = Number(e.target.value) / 100;
+            document.getElementById('zoom-val').textContent = (zoom * 100) + '%';
+            canvasWrapper.style.transform = `scale(${zoom})`;
+        });
+        
+        function resetView() {
+            brightness = 100;
+            contrast = 100;
+            zoom = 1;
+            document.getElementById('brightness').value = 100;
+            document.getElementById('contrast').value = 100;
+            document.getElementById('zoom').value = 100;
+            document.getElementById('brightness-val').textContent = '100%';
+            document.getElementById('contrast-val').textContent = '100%';
+            document.getElementById('zoom-val').textContent = '100%';
+            canvasWrapper.style.transform = 'scale(1)';
+            applyFilters();
+        }
+        
+        function applyFilters() {
+            canvas.style.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+        }
+        
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            sidebar.classList.toggle('collapsed', !sidebarOpen);
+            showSidebarBtn.classList.toggle('visible', !sidebarOpen);
+            document.querySelector('.back-btn').style.left = sidebarOpen ? '12px' : '60px';
+            document.querySelector('.fullscreen-btn').style.right = sidebarOpen ? '12px' : '60px';
+        }
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch((e) => {
+                    console.log('Error al activar pantalla completa:', e);
+                });
+                fullscreenBtn.textContent = '⛶';
             } else {
-                document.getElementById('info-content').innerHTML = '<p>No se especificó un estudio</p>';
-                document.getElementById('viewer').src = defaultViewerUrl;
+                document.exitFullscreen();
+                fullscreenBtn.textContent = '⛶';
             }
-        })();
+        }
         
-        function displayStudyInfo(data) {
-            const study = data.studies && data.studies[0];
-            if (!study) {
-                document.getElementById('info-content').innerHTML = '<p>No hay información disponible</p>';
+        function toggleMeasureMode() {
+            measureMode = !measureMode;
+            measureBtn.classList.toggle('active', measureMode);
+            canvas.classList.toggle('default-cursor', !measureMode);
+            canvas.classList.toggle('crosshair', measureMode);
+            
+            if (!measureMode) {
+                isDrawing = false;
+                startPoint = null;
+                currentPoint = null;
+            }
+        }
+        
+        function toggleMeasureMode() {
+            measureMode = !measureMode;
+            measureBtn.classList.toggle('active', measureMode);
+            
+            if (measureMode) {
+                canvas.classList.remove('default-cursor');
+                canvas.style.cursor = 'crosshair';
+            } else {
+                isDrawing = false;
+                startPoint = null;
+                currentPoint = null;
+                canvas.classList.add('default-cursor');
+                canvas.style.cursor = 'default';
+            }
+        }
+        
+        function clearAllMeasurements() {
+            measurements = [];
+            renderMeasurements();
+            updateMeasurementsList();
+        }
+        
+        function getCanvasCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            if (e.touches) {
+                return {
+                    x: (e.touches[0].clientX - rect.left) * scaleX,
+                    y: (e.touches[0].clientY - rect.top) * scaleY
+                };
+            }
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+        
+        function calculateDistance(p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const pixels = Math.sqrt(dx * dx + dy * dy);
+            return (pixels * pixelSpacing).toFixed(2);
+        }
+        
+        function addMeasurement(p1, p2) {
+            const distance = calculateDistance(p1, p2);
+            measurements.push({
+                p1: { ...p1 },
+                p2: { ...p2 },
+                distance: distance,
+                color: '#00ff00'
+            });
+            renderMeasurements();
+            updateMeasurementsList();
+        }
+        
+        function renderMeasurements() {
+            measurementsOverlay.innerHTML = '';
+            
+            measurements.forEach((m, index) => {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                
+                // Linea
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', m.p1.x);
+                line.setAttribute('y1', m.p1.y);
+                line.setAttribute('x2', m.p2.x);
+                line.setAttribute('y2', m.p2.y);
+                line.setAttribute('class', 'measurement-line');
+                line.setAttribute('stroke', m.color);
+                g.appendChild(line);
+                
+                // Puntos
+                [m.p1, m.p2].forEach(p => {
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', p.x);
+                    circle.setAttribute('cy', p.y);
+                    circle.setAttribute('r', 4);
+                    circle.setAttribute('class', 'measurement-point');
+                    g.appendChild(circle);
+                });
+                
+                // Texto con distancia
+                const midX = (m.p1.x + m.p2.x) / 2;
+                const midY = (m.p1.y + m.p2.y) / 2;
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', midX);
+                text.setAttribute('y', midY - 8);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('class', 'measurement-text');
+                text.textContent = `${m.distance} mm`;
+                g.appendChild(text);
+                
+                measurementsOverlay.appendChild(g);
+            });
+            
+            // Linea actual mientras se dibuja
+            if (isDrawing && startPoint && currentPoint) {
+                const distance = calculateDistance(startPoint, currentPoint);
+                
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', startPoint.x);
+                line.setAttribute('y1', startPoint.y);
+                line.setAttribute('x2', currentPoint.x);
+                line.setAttribute('y2', currentPoint.y);
+                line.setAttribute('class', 'measurement-line');
+                line.setAttribute('stroke', '#ffff00');
+                line.setAttribute('stroke-dasharray', '5,5');
+                measurementsOverlay.appendChild(line);
+                
+                const midX = (startPoint.x + currentPoint.x) / 2;
+                const midY = (startPoint.y + currentPoint.y) / 2;
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', midX);
+                text.setAttribute('y', midY - 8);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('class', 'measurement-text');
+                text.setAttribute('fill', '#ffff00');
+                text.textContent = `${distance} mm`;
+                measurementsOverlay.appendChild(text);
+            }
+        }
+        
+        function updateMeasurementsList() {
+            if (measurements.length === 0) {
+                measurementsList.innerHTML = '<div class="no-measurements">Sin mediciones</div>';
                 return;
             }
             
-            const seriesCount = study.series ? study.series.length : 0;
-            let instancesCount = 0;
-            if (study.series) {
-                study.series.forEach(s => {
-                    instancesCount += s.instances ? s.instances.length : 0;
-                });
+            let html = '';
+            measurements.forEach((m, index) => {
+                html += `
+                    <div class="measurement-item">
+                        <span>Medición ${index + 1}: <strong class="measurement-value">${m.distance} mm</strong></span>
+                        <button class="measurement-delete" onclick="deleteMeasurement(${index})">✕</button>
+                    </div>
+                `;
+            });
+            measurementsList.innerHTML = html;
+        }
+        
+        function deleteMeasurement(index) {
+            measurements.splice(index, 1);
+            renderMeasurements();
+            updateMeasurementsList();
+        }
+        
+        // Event listeners para mediciones
+        canvas.addEventListener('mousedown', (e) => {
+            if (!measureMode) return;
+            isDrawing = true;
+            startPoint = getCanvasCoordinates(e);
+            currentPoint = startPoint;
+            renderMeasurements();
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!measureMode || !isDrawing) return;
+            currentPoint = getCanvasCoordinates(e);
+            renderMeasurements();
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            if (!measureMode || !isDrawing) return;
+            isDrawing = false;
+            const endPoint = getCanvasCoordinates(e);
+            
+            // Solo agregar si la distancia es significativa
+            if (calculateDistance(startPoint, endPoint) > 5) {
+                addMeasurement(startPoint, endPoint);
             }
             
-            const html = `
-                <div class="info-row">
-                    <span class="label">Paciente:</span>
-                    <span class="value">${study.PatientName || 'N/A'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">ID Paciente:</span>
-                    <span class="value">${study.PatientID || 'N/A'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Sexo:</span>
-                    <span class="value">${study.PatientSex || 'N/A'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Fecha:</span>
-                    <span class="value">${formatDate(study.StudyDate) || 'N/A'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Modalidad:</span>
-                    <span class="value">${study.ModalitiesInStudy || 'N/A'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Descripción:</span>
-                    <span class="value">${study.StudyDescription || 'N/A'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Series:</span>
-                    <span class="value">${seriesCount}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Imágenes:</span>
-                    <span class="value">${instancesCount}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">UID:</span>
-                    <span class="value" style="font-size:10px;word-break:break-all;">${study.StudyInstanceUID || 'N/A'}</span>
-                </div>
-            `;
+            startPoint = null;
+            currentPoint = null;
+            renderMeasurements();
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            if (isDrawing) {
+                isDrawing = false;
+                startPoint = null;
+                currentPoint = null;
+                renderMeasurements();
+            }
+        });
+        
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            if (!measureMode) return;
+            e.preventDefault();
+            isDrawing = true;
+            startPoint = getCanvasCoordinates(e);
+            currentPoint = startPoint;
+            renderMeasurements();
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            if (!measureMode || !isDrawing) return;
+            e.preventDefault();
+            currentPoint = getCanvasCoordinates(e);
+            renderMeasurements();
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            if (!measureMode || !isDrawing) return;
+            e.preventDefault();
+            isDrawing = false;
+            const endPoint = getCanvasCoordinates(e.changedTouches[0]);
             
+            if (calculateDistance(startPoint, endPoint) > 5) {
+                addMeasurement(startPoint, endPoint);
+            }
+            
+            startPoint = null;
+            currentPoint = null;
+            renderMeasurements();
+        });
+        
+        function renderDicomToCanvas(dataSet) {
+            const rows = dataSet.uint16('x00280010') || 512;
+            const cols = dataSet.uint16('x00280011') || 512;
+            const bitsAllocated = dataSet.uint16('x00280100') || 16;
+            const pixelRepresentation = dataSet.uint16('x00280103') || 0;
+            const windowCenter = dataSet.floatString('x00281050');
+            const windowWidth = dataSet.floatString('x00281051');
+            
+            // Obtener pixel spacing si existe
+            try {
+                const rowSpacing = dataSet.floatString('x00280030');
+                if (rowSpacing) {
+                    const spacingStr = typeof rowSpacing === 'string' ? rowSpacing.split('\\')[0] : rowSpacing;
+                    pixelSpacing = parseFloat(spacingStr) || 1;
+                } else {
+                    pixelSpacing = 1;
+                }
+            } catch (e) {
+                pixelSpacing = 1;
+            }
+            
+            const pixelDataEl = dataSet.elements['x7fe00010'];
+            if (!pixelDataEl) {
+                throw new Error('No se encontraron datos de píxeles');
+            }
+            
+            const byteArray = dataSet.byteArray;
+            canvas.width = cols;
+            canvas.height = rows;
+            
+            const imageData = ctx.createImageData(cols, rows);
+            const pixels = imageData.data;
+            const total = rows * cols;
+            
+            if (bitsAllocated <= 8) {
+                const offset = pixelDataEl.dataOffset;
+                for (let i = 0; i < total; i++) {
+                    const v = byteArray[offset + i] || 0;
+                    pixels[i * 4] = v;
+                    pixels[i * 4 + 1] = v;
+                    pixels[i * 4 + 2] = v;
+                    pixels[i * 4 + 3] = 255;
+                }
+            } else {
+                const offset = pixelDataEl.dataOffset;
+                let rawMin = Infinity, rawMax = -Infinity;
+                const raw = new Array(total);
+                
+                for (let i = 0; i < total; i++) {
+                    const lo = byteArray[offset + i * 2];
+                    const hi = byteArray[offset + i * 2 + 1];
+                    let val = (hi << 8) | lo;
+                    if (pixelRepresentation === 1 && val > 0x7FFF) val -= 0x10000;
+                    raw[i] = val;
+                    if (val < rawMin) rawMin = val;
+                    if (val > rawMax) rawMax = val;
+                }
+                
+                const wc = windowCenter ?? (rawMin + rawMax) / 2;
+                const ww = windowWidth ?? ((rawMax - rawMin) || 1);
+                const wMin = wc - ww / 2;
+                const wMax = wc + ww / 2;
+                
+                for (let i = 0; i < total; i++) {
+                    let norm = (raw[i] - wMin) / (wMax - wMin);
+                    norm = Math.max(0, Math.min(1, norm));
+                    const byte = Math.round(norm * 255);
+                    pixels[i * 4] = byte;
+                    pixels[i * 4 + 1] = byte;
+                    pixels[i * 4 + 2] = byte;
+                    pixels[i * 4 + 3] = 255;
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            
+            // Reset cursor
+            if (!measureMode) {
+                canvas.classList.add('default-cursor');
+                canvas.style.cursor = 'default';
+            }
+            
+            return true;
+        }
+        
+        function extractPatientInfo(dataSet) {
+            const s = (tag) => {
+                try { const v = dataSet.string(tag); return v?.trim() || null } catch { return null }
+            };
+            
+            return {
+                patientName: s('x00100010'),
+                patientId: s('x00100020'),
+                patientBirthDate: s('x00100030'),
+                patientSex: s('x00100040'),
+                studyDate: s('x00080020'),
+                studyDescription: s('x00081030'),
+                seriesDescription: s('x0008103e'),
+                modality: s('x00080060'),
+                institutionName: s('x00080080'),
+                rows: dataSet.uint16('x00280010'),
+                columns: dataSet.uint16('x00280011'),
+            };
+        }
+        
+        function displayPatientInfo(info) {
+            const html = `
+                <div class="info-row"><span class="label">Paciente:</span><span class="value">${info.patientName || 'N/A'}</span></div>
+                <div class="info-row"><span class="label">ID:</span><span class="value">${info.patientId || 'N/A'}</span></div>
+                <div class="info-row"><span class="label">Sexo:</span><span class="value">${info.patientSex || 'N/A'}</span></div>
+                <div class="info-row"><span class="label">Fecha Nacimiento:</span><span class="value">${info.patientBirthDate || 'N/A'}</span></div>
+                <div class="info-row"><span class="label">Fecha Estudio:</span><span class="value">${formatDate(info.studyDate)}</span></div>
+                <div class="info-row"><span class="label">Modalidad:</span><span class="value">${info.modality || 'N/A'}</span></div>
+                <div class="info-row"><span class="label">Descripción:</span><span class="value">${info.studyDescription || 'N/A'}</span></div>
+                <div class="info-row"><span class="label">Institución:</span><span class="value">${info.institutionName || 'N/A'}</span></div>
+                <div class="info-row"><span class="label">Dimensiones:</span><span class="value">${info.columns || 0} × ${info.rows || 0}</span></div>
+            `;
             document.getElementById('info-content').innerHTML = html;
         }
         
         function formatDate(dateStr) {
             if (!dateStr || dateStr.length !== 8) return dateStr;
-            const year = dateStr.substring(0, 4);
-            const month = dateStr.substring(4, 6);
-            const day = dateStr.substring(6, 8);
-            return `${day}/${month}/${year}`;
+            return `${dateStr.substring(6,8)}/${dateStr.substring(4,6)}/${dateStr.substring(0,4)}`;
         }
+        
+        async function loadStudy() {
+            try {
+                document.getElementById('loading-info').textContent = `Obteniendo estudio: ${fileId}`;
+                
+                const response = await fetch(`${API_BASE}/study/${fileId}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const studyData = await response.json();
+                console.log('[DICOM] Estudio:', studyData);
+                
+                if (!studyData.studies || studyData.studies.length === 0) {
+                    throw new Error('No se encontraron estudios');
+                }
+                
+                const study = studyData.studies[0];
+                
+                // Obtener todas las URLs de instancias DICOM
+                const imageUrls = [];
+                if (study.series) {
+                    study.series.forEach(series => {
+                        if (series.instances) {
+                            series.instances.forEach(instance => {
+                                const url = instance.wadoUri || instance.wadoUrl;
+                                if (url) {
+                                    imageUrls.push(url.replace('wadouri:', ''));
+                                }
+                            });
+                        }
+                    });
+                }
+                
+                if (imageUrls.length === 0) {
+                    throw new Error('No se encontraron imágenes DICOM');
+                }
+                
+                dicomImages = imageUrls;
+                currentIndex = 0;
+                pixelSpacing = 1;
+                measurements = [];
+                
+                document.getElementById('image-count').textContent = `1 / ${imageUrls.length}`;
+                updateMeasurementsList();
+                
+                // Cargar primera imagen
+                await loadImage(0);
+                
+                document.getElementById('loading').classList.add('hidden');
+                
+            } catch (err) {
+                console.error('[DICOM] Error:', err);
+                document.getElementById('loading').innerHTML = 
+                    `<div class="error-msg"><h2>Error</h2><p>${err.message}</p></div>`;
+                document.querySelector('.spinner').style.display = 'none';
+            }
+        }
+        
+        async function loadImage(index) {
+            try {
+                const url = dicomImages[index];
+                document.getElementById('file-name').textContent = `Imagen DICOM`;
+                document.getElementById('image-count').textContent = `${index + 1} / ${dicomImages.length}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const byteArray = new Uint8Array(arrayBuffer);
+                const dataSet = dicomParser.parseDicom(byteArray);
+                
+                renderDicomToCanvas(dataSet);
+                
+                if (index === 0) {
+                    const info = extractPatientInfo(dataSet);
+                    displayPatientInfo(info);
+                    
+                    // Obtener pixel spacing
+                    try {
+                        const rowSpacing = dataSet.floatString('x00280030');
+                        if (rowSpacing) {
+                            const spacingStr = typeof rowSpacing === 'string' ? rowSpacing.split('\\')[0] : rowSpacing;
+                            pixelSpacing = parseFloat(spacingStr) || 1;
+                        }
+                    } catch (e) {
+                        pixelSpacing = 1;
+                    }
+                }
+                
+                updateNavButtons();
+                
+            } catch (err) {
+                console.error('[Image] Error:', err);
+                document.querySelector('.canvas-area').innerHTML += 
+                    `<div class="error-msg">Error cargando imagen: ${err.message}</div>`;
+            }
+        }
+        
+        function prevImage() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                loadImage(currentIndex);
+            }
+        }
+        
+        function nextImage() {
+            if (currentIndex < dicomImages.length - 1) {
+                currentIndex++;
+                loadImage(currentIndex);
+            }
+        }
+        
+        function updateNavButtons() {
+            document.getElementById('prev-btn').disabled = currentIndex === 0;
+            document.getElementById('next-btn').disabled = currentIndex === dicomImages.length - 1;
+        }
+        
+        // Iniciar
+        if (fileId) {
+            loadStudy();
+        } else {
+            document.getElementById('loading').innerHTML = 
+                `<div class="error-msg"><h2>Error</h2><p>No se especificó fileId en la URL</p></div>`;
+            document.querySelector('.spinner').style.display = 'none';
+        }
+        
+        // Teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') prevImage();
+            if (e.key === 'ArrowRight') nextImage();
+            if (e.key === 'Escape') {
+                if (measureMode) toggleMeasureMode();
+                else if (sidebarOpen) toggleSidebar();
+            }
+            if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+            if (e.key === 'm' || e.key === 'M') toggleMeasureMode();
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (measurements.length > 0) {
+                    measurements.pop();
+                    renderMeasurements();
+                    updateMeasurementsList();
+                }
+            }
+        });
+        
+        // Touch/swipe para móvil
+        let touchStartX = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > 50 && !measureMode) {
+                if (diff > 0 && currentIndex < dicomImages.length - 1) {
+                    nextImage();
+                } else if (diff < 0 && currentIndex > 0) {
+                    prevImage();
+                }
+            }
+        });
+        
+        //Fullscreen change listener
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenBtn.textContent = '⛶';
+            } else {
+                fullscreenBtn.textContent = '⛶';
+            }
+        });
     </script>
 </body>
-
 </html>
